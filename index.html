@@ -1709,6 +1709,48 @@
       color: white;
     }
 
+    /* ── MOBILE RESPONSIVENESS ── */
+    @media (max-width: 768px) {
+      .top-controls {
+        flex-direction: column;
+        align-items: flex-end;
+        top: 10px;
+        right: 10px;
+        gap: 8px;
+      }
+      #alerts-wrapper {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .header {
+        padding-top: 120px;
+      }
+      .badge-name {
+        display: none;
+      }
+      #profile-btn {
+        padding: 6px;
+      }
+      .session-row {
+        flex-wrap: wrap;
+      }
+      .session-desc {
+        width: 100%;
+        padding-left: 32px;
+        margin-top: 4px;
+      }
+      .stats-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      .week-summary-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .overall-nums {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
 
@@ -2957,14 +2999,19 @@
     }
 
     function testEmailAlert() {
-      if (!profileData.email) {
+      const emailInput = document.getElementById('quick-email').value.trim();
+      if (!emailInput) {
         showToast("Please enter your email address first! 📧");
         return;
       }
+      profileData.email = emailInput;
+      localStorage.setItem(getUserKey('studyProfile_v3'), JSON.stringify(profileData));
+
       showToast("Sending test alert... ⏳");
       
       emailjs.send("service_3nxoglq", "template_o4c0xyc", {
-        to_email: profileData.email,
+        to_email: emailInput,
+        reply_to: emailInput,
         to_name: profileData.name,
         task_name: "Test Setup",
         task_topic: "Verifying your alerts are active!",
@@ -3115,6 +3162,7 @@
           // Trigger EmailJS
           emailjs.send("service_3nxoglq", "template_o4c0xyc", {
             to_email: profileData.email,
+            reply_to: profileData.email,
             to_name: profileData.name,
             task_name: sess.sub,
             task_topic: sess.topic,
