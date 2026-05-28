@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graph Quest: BFS vs DFS | Fantasy Adventure RPG Puzzle</title>
+  <title>Graph Quest: The Traversal Realms</title>
   <meta name="description" content="Embark on a magical 2.5D RPG adventure game to master Breadth-First Search (BFS) and Depth-First Search (DFS) graph traversal algorithms through stunning interactive puzzles.">
   
   <!-- FontAwesome Icons & Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-v3.css">
 </head>
 <body>
 
-  <!-- Background Ambient Weather/Particle Canvas -->
   <div class="game-container">
     
     <!-- Core Canvas for Graph Rendering & Interactive Puzzles -->
@@ -24,76 +24,59 @@
     <div id="node-tooltip" class="interactive-tooltip"></div>
 
     <!-- =========================================================================
-         GAME MENU OVERLAY (PARCHMENT SCROLL)
+         START MENU / MODE SELECTOR (PARCHMENT SCROLL)
          ========================================================================= -->
     <div id="start-menu" class="overlay-screen">
-      <div class="scroll-panel">
+      <div class="scroll-panel start-panel">
         <h1 class="scroll-title font-fantasy">Graph Quest</h1>
-        <h3 class="scroll-subtitle font-medieval">BFS vs DFS Chronicles</h3>
+        <h3 class="scroll-subtitle font-medieval">The Traversal Realms</h3>
         
-        <div class="scroll-body">
-          <p>
-            Welcome, brave Pathfinder! The magical kingdoms are fracturing. Ancient energy paths connecting the towers, shrines, and portals have lost their alignment. Only a master of <strong>Graph Traversal</strong> can channel the cosmic energy and restore peace!
+        <div class="scroll-body" id="menu-main-view">
+          <p style="text-align: center; margin-bottom: 20px;">
+            Welcome, brave Pathfinder! The magical kingdoms are fracturing. Restore the ancient energy paths using your knowledge of Graph Traversal!
           </p>
-          <p>
-            Choose your traversal method to navigate each realm. 
-            Select nodes strictly matching the active rules:
-          </p>
-          <ul class="scroll-list">
-            <li><strong>BFS (Breadth-First):</strong> Explore neighboring locations layer-by-layer using the magical scroll queue.</li>
-            <li><strong>DFS (Depth-First):</strong> Venture deep along a single path before backtracking using the memory stack.</li>
-          </ul>
 
-          <h3 class="font-fantasy" style="margin: 15px 0 8px 0; border-bottom: 1px dashed #5c2c16; padding-bottom: 4px;">Choose Your Realm</h3>
-          <div class="level-select-grid" id="level-selector-container">
-            <!-- Dynamically populated level cards -->
+          <div class="mode-buttons-grid">
+            <button id="btn-mode-story" class="btn-fantasy mode-btn"><i class="fa-solid fa-book-journal-whills"></i> Story Mode</button>
+            <button id="btn-mode-custom" class="btn-fantasy mode-btn"><i class="fa-solid fa-pen-nib"></i> Custom Graph</button>
+            <button id="btn-mode-challenge" class="btn-fantasy mode-btn"><i class="fa-solid fa-stopwatch"></i> Challenge Mode</button>
+            <button id="btn-mode-compare" class="btn-fantasy mode-btn"><i class="fa-solid fa-code-compare"></i> Compare Realms</button>
           </div>
         </div>
 
-        <div style="display: flex; gap: 14px; margin-top: 10px; width: 100%; justify-content: center;">
-          <button id="btn-start-game" class="btn-fantasy"><i class="fa-solid fa-wand-magic-sparkles"></i> Begin Quest</button>
-          <button id="btn-open-compare" class="btn-fantasy" style="background: linear-gradient(180deg, #103050, #001f3f); border-color: var(--color-bfs-blue);"><i class="fa-solid fa-circle-nodes"></i> Compare Realms</button>
-          <button id="btn-open-instructions" class="btn-fantasy" style="background: linear-gradient(180deg, #444, #222); border-color: #aaa;"><i class="fa-solid fa-book-open"></i> Spellbook</button>
+        <!-- Custom Graph Input Form (Hidden by default) -->
+        <div class="scroll-body hidden" id="menu-custom-view">
+          <h3 class="font-fantasy" style="color: var(--color-gold); border-bottom: 1px dashed var(--color-gold); padding-bottom: 5px; margin-bottom: 15px;">Create Custom Realm</h3>
+          <div class="custom-input-group">
+            <label>Nodes (Comma separated, e.g. A,B,C,D,E)</label>
+            <input type="text" id="custom-nodes-input" class="magical-input" placeholder="A, B, C, D, E" value="A, B, C, D, E, F">
+          </div>
+          <div class="custom-input-group">
+            <label>Connections (e.g. A-B, A-C)</label>
+            <textarea id="custom-edges-input" class="magical-input" rows="3" placeholder="A-B, A-C, B-D">A-B, A-C, B-D, B-E, C-F</textarea>
+          </div>
+          <div class="custom-input-group row-group">
+            <div>
+              <label>Starting Node</label>
+              <input type="text" id="custom-start-input" class="magical-input short" placeholder="A" value="A">
+            </div>
+            <div>
+              <label>Algorithm</label>
+              <select id="custom-algo-select" class="magical-select">
+                <option value="BFS">Breadth-First Search (BFS)</option>
+                <option value="DFS">Depth-First Search (DFS)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="btn-generate-custom" class="btn-fantasy"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate World</button>
+            <button id="btn-back-main" class="btn-fantasy" style="background: linear-gradient(180deg, #555, #333); border-color: #999;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          </div>
         </div>
+
       </div>
     </div>
 
-    <!-- =========================================================================
-         SPELLBOOK / INSTRUCTIONS MODAL
-         ========================================================================= -->
-    <div id="instructions-modal" class="overlay-screen hidden">
-      <div class="scroll-panel">
-        <h2 class="scroll-title font-fantasy"><i class="fa-solid fa-book-bookmark"></i> The Pathfinder Spellbook</h2>
-        
-        <div class="scroll-body" style="font-size: 0.9rem;">
-          <h3 class="font-fantasy" style="color: var(--color-bfs-blue); margin-bottom: 4px;">⚡ BFS (Breadth-First Search)</h3>
-          <p>
-            BFS operates on a <strong>First-In, First-Out (FIFO)</strong> policy using a <strong>Queue</strong>. 
-            It represents systematic exploration, expanding outwards like scouts in a wide plain.
-          </p>
-          <ul class="scroll-list" style="margin-top: 4px;">
-            <li>All immediate neighbors (depth 1) are explored first, before moving to neighbors of neighbors (depth 2).</li>
-            <li>In-game, new neighbors are added to the back of the <strong>Scroll Queue</strong>.</li>
-            <li>You can only explore nodes connected to the <strong>Front</strong> of your queue.</li>
-            <li>BFS is perfect for finding the <em>shortest path</em> in an unweighted graph!</li>
-          </ul>
-
-          <h3 class="font-fantasy" style="color: var(--color-dfs-amber); margin-bottom: 4px;">🔥 DFS (Depth-First Search)</h3>
-          <p>
-            DFS operates on a <strong>Last-In, First-Out (LIFO)</strong> policy using a <strong>Stack</strong>.
-            It represents deep, daring exploration, plunging deep into dark dungeons first.
-          </p>
-          <ul class="scroll-list" style="margin-top: 4px;">
-            <li>It plunges deep down a single path. Only when it hits a dead end does it backtrack to the nearest intersection.</li>
-            <li>In-game, nodes are placed on top of the <strong>Memory Crystal Stack</strong>.</li>
-            <li>You can only explore nodes connected to the <strong>Top</strong> active crystal.</li>
-            <li>If there are no unvisited neighbors, the game enters <strong>Backtracking Mode</strong>: the top crystal shatters and you return to the previous node to find alternative paths.</li>
-          </ul>
-        </div>
-
-        <button id="btn-close-instructions" class="btn-fantasy"><i class="fa-solid fa-xmark"></i> Close Spellbook</button>
-      </div>
-    </div>
 
     <!-- =========================================================================
          HUD CONTROLLER OVERLAYS
@@ -102,20 +85,16 @@
       
       <!-- Top HUD Grid -->
       <div class="hud-top">
-        
-        <!-- Level Badge -->
         <div class="fantasy-panel level-badge" id="level-badge-panel">
           <span class="level-title font-fantasy" id="hud-level-num">Level 1</span>
           <span class="region-title font-medieval" id="hud-level-name">Elderwood Grove</span>
         </div>
 
-        <!-- Traversal Mode -->
         <div class="fantasy-panel mode-indicator bfs-mode" id="hud-mode-panel">
           <div class="mode-orb"></div>
           <span id="hud-mode-text" class="font-fantasy">BFS Mode</span>
         </div>
 
-        <!-- Right Stats -->
         <div class="fantasy-panel stats-panel">
           <div class="stat-item">
             <span class="stat-label">Mana / XP</span>
@@ -124,283 +103,106 @@
               <div class="xp-bar-fill" id="hud-xp-fill"></div>
             </div>
           </div>
-          
-          <div class="stat-item">
-            <span class="stat-label">Score</span>
-            <span class="stat-value" id="hud-score">0000</span>
-          </div>
-
           <div class="stat-item">
             <span class="stat-label">Time</span>
             <span class="stat-value font-medieval" id="hud-timer">00:00</span>
           </div>
-
-          <div class="audio-controls">
-            <button id="btn-sound-toggle" class="mute-btn" title="Toggle Magical Ambient Sounds"><i class="fa-solid fa-volume-high"></i></button>
-          </div>
+          <button id="btn-hud-menu" class="btn-fantasy small" style="margin-left: 10px;"><i class="fa-solid fa-compass"></i> Menu</button>
         </div>
-
       </div>
 
-      <!-- Middle HUD (AI Companion & Stack Panel) -->
+      <!-- Middle HUD (AI Companion & Stack/Queue Visualizers) -->
       <div class="hud-middle">
         
-        <!-- Left: AI Guide Aria -->
+        <!-- AI Guide Companion (Aria the Owl Spirit) -->
         <div class="ai-companion-box" id="ai-guide-box">
           <div class="companion-bubble">
             <div class="companion-speaker">
-              <span class="font-fantasy">Aria (Owl Spirit)</span>
-              <span class="companion-mood" id="guide-mood">Thoughtful</span>
+              <span class="font-fantasy" style="color: var(--color-gold);">Aria (Owl Spirit)</span>
             </div>
-            <div id="guide-dialogue">
-              "Welcome to Elderwood Grove, Pathfinder! We must explore this forest. Hover over nodes to preview paths. Click a node to visit it."
+            <div id="guide-dialogue" class="guide-text">
+              "Welcome Pathfinder! Drag the glowing nodes from the world into the traversal slots below in the correct order."
             </div>
+            <!-- Dynamic hints or next expected nodes shown here -->
+            <div id="guide-hint-text" class="guide-hint hidden"></div>
           </div>
-          
           <div class="companion-avatar-area">
-            <div class="companion-avatar">
-              <!-- Inline SVG Owl Avatar for dynamic animations -->
+            <div class="companion-avatar" id="aria-avatar">
               <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="45" fill="#1b2a47"/>
-                <!-- Owl Eyes -->
                 <circle cx="35" cy="45" r="12" fill="#ffd700"/>
                 <circle cx="65" cy="45" r="12" fill="#ffd700"/>
                 <circle cx="35" cy="45" r="6" fill="#000000" id="owl-left-pupil"/>
                 <circle cx="65" cy="45" r="6" fill="#000000" id="owl-right-pupil"/>
-                <!-- Owl Beak -->
                 <polygon points="50,52 44,60 56,60" fill="#ff7f00"/>
-                <!-- Horns/Feathers -->
                 <path d="M22,25 L35,32 L20,38 Z" fill="#4a5568"/>
                 <path d="M78,25 L65,32 L80,38 Z" fill="#4a5568"/>
-                <!-- Chest pattern -->
-                <path d="M35,70 Q50,60 65,70" stroke="#718096" stroke-width="3" stroke-linecap="round"/>
-                <path d="M38,78 Q50,68 62,78" stroke="#718096" stroke-width="3" stroke-linecap="round"/>
               </svg>
             </div>
-            <span class="companion-name">Aria</span>
           </div>
         </div>
 
-        <!-- Right: Memory Crystal Stack (Shown dynamically in DFS mode) -->
-        <div class="stack-outer-panel" id="stack-panel">
-          <span class="stack-title"><i class="fa-solid fa-gem"></i> Memory Stack</span>
-          <div class="stack-container" id="stack-nodes-list">
-            <!-- Dynamic crystal slots -->
-            <div style="font-size: 0.65rem; color: #a0aec0; text-align: center; margin-top: auto; padding: 10px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 6px;">Empty Stack</div>
+        <!-- Live Algorithm Visualization (Queue/Stack) -->
+        <div class="algo-visualizer" id="algo-visualizer">
+          <span class="algo-title" id="algo-title-text"><i class="fa-solid fa-scroll"></i> Queue</span>
+          <div class="algo-container" id="algo-items-list">
+            <!-- Dynamically populated with queue/stack items -->
+            <div class="algo-empty">Empty</div>
           </div>
         </div>
 
       </div>
 
-      <!-- Bottom HUD (Queue & Controls) -->
+      <!-- Bottom HUD (Traversal Drag-and-Drop Slots) -->
       <div class="hud-bottom">
-        
-        <!-- Queue Display (Shown dynamically in BFS mode) -->
-        <div class="queue-outer-panel" id="queue-panel">
-          <span class="queue-title"><i class="fa-solid fa-scroll"></i> Scroll Queue</span>
-          <div class="queue-container" id="queue-nodes-list">
-            <!-- Dynamic scroll slots -->
-            <div style="font-size: 0.65rem; color: #a0aec0; text-align: center; margin: auto; padding: 10px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 6px;">Empty Queue</div>
+        <div class="traversal-slots-panel">
+          <div class="slots-header font-fantasy">Traversal Sequence</div>
+          <div class="slots-container" id="traversal-slots-container">
+            <!-- Slots will be generated dynamically by JS -->
           </div>
         </div>
-
-        <!-- Control Bar -->
-        <div class="hud-control-bar">
-          
-          <!-- Game Menu Controls -->
-          <div class="action-buttons-group">
-            <button id="btn-hud-menu" class="btn-fantasy"><i class="fa-solid fa-compass"></i> Realms</button>
-            <button id="btn-hud-restart" class="btn-fantasy" style="background: linear-gradient(180deg, #7c2f2f, #4d1515); border-color: #ff5555;"><i class="fa-solid fa-arrow-rotate-left"></i> Restart</button>
-            <button id="btn-hud-toggle-mode" class="btn-fantasy" style="border-color: #ffd700;"><i class="fa-solid fa-shuffle"></i> Swap Rule</button>
-          </div>
-
-          <!-- Powerups Toolbar -->
-          <div class="powerups-group">
-            <button id="powerup-hint" class="btn-powerup" title="Hint Vision (Available next nodes)">
-              <i class="fa-solid fa-eye"></i>
-              <span class="powerup-count" id="count-hint">2</span>
-            </button>
-            <button id="powerup-glow" class="btn-powerup" title="Path Glow (Highlights connection matrix)">
-              <i class="fa-solid fa-bolt"></i>
-              <span class="powerup-count" id="count-glow">2</span>
-            </button>
-            <button id="powerup-undo" class="btn-powerup" title="Undo Move">
-              <i class="fa-solid fa-rotate-left"></i>
-              <span class="powerup-count" id="count-undo">3</span>
-            </button>
-            <button id="powerup-slow" class="btn-powerup" title="Freeze Temporal Flow">
-              <i class="fa-solid fa-hourglass-half"></i>
-              <span class="powerup-count" id="count-slow">1</span>
-            </button>
-          </div>
-
-        </div>
-
       </div>
 
-    </div>
-
-    <!-- =========================================================================
-         FEEDBACK POPUP (CORRECT / WRONG MOVE EXPLANATIONS)
-         ========================================================================= -->
-    <div id="feedback-overlay" class="overlay-screen hidden">
-      <div class="feedback-card" id="feedback-card-element">
-        <div class="feedback-icon" id="feedback-icon-val"><i class="fa-solid fa-circle-check"></i></div>
-        <h2 class="feedback-title font-fantasy" id="feedback-title-val">Correct!</h2>
-        
-        <div class="feedback-explanation" id="feedback-explanation-val">
-          BFS traverses layer-by-layer. Since Town B is adjacent to our starting portal at distance 1, it must be explored before we travel deeper to the magical ruins.
-        </div>
-
-        <button id="btn-close-feedback" class="btn-fantasy"><i class="fa-solid fa-chevron-right"></i> Resume Quest</button>
-      </div>
     </div>
 
     <!-- =========================================================================
          VICTORY REALM POPUP
          ========================================================================= -->
     <div id="victory-overlay" class="overlay-screen hidden">
-      <div class="scroll-panel" style="max-width: 500px; text-align: center;">
+      <div class="scroll-panel" style="max-width: 600px; text-align: center;">
         <div style="font-size: 4rem; color: var(--color-gold); filter: drop-shadow(0 0 10px rgba(255,215,0,0.5)); animation: float-slow 3s infinite alternate;">
           <i class="fa-solid fa-trophy"></i>
         </div>
-        <h1 class="scroll-title font-fantasy">Realm Completed!</h1>
-        <h3 class="scroll-subtitle font-medieval" id="victory-score-label">Score: 2450</h3>
+        <h1 class="scroll-title font-fantasy">Realm Restored!</h1>
         
-        <div class="scroll-body" style="text-align: center;">
-          <p id="victory-description">
-            Marvelous job, Pathfinder! You channeled the algorithm perfectly and restored the energy pathways of Elderwood Grove. 
-          </p>
-          <div style="background: rgba(0,0,0,0.06); padding: 12px; border-radius: 8px; border: 1px dashed #8b5a2b; margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <span style="font-size: 0.75rem; color: #885533; text-transform: uppercase;">Total Time</span>
-              <div class="font-medieval" id="victory-time" style="font-size: 1.2rem; font-weight: bold; color: #2c1a0e;">02:15</div>
-            </div>
-            <div>
-              <span style="font-size: 0.75rem; color: #885533; text-transform: uppercase;">Mistakes Made</span>
-              <div class="font-medieval" id="victory-mistakes" style="font-size: 1.2rem; font-weight: bold; color: #2c1a0e;">0</div>
-            </div>
+        <div class="victory-stats-grid">
+          <div class="v-stat">
+            <span>Stars</span>
+            <div id="victory-stars" style="color: var(--color-gold); font-size: 1.5rem;">⭐⭐⭐</div>
+          </div>
+          <div class="v-stat">
+            <span>Accuracy</span>
+            <div id="victory-accuracy" class="font-medieval" style="font-size: 1.5rem;">100%</div>
+          </div>
+          <div class="v-stat">
+            <span>XP Gained</span>
+            <div id="victory-xp" class="font-medieval" style="font-size: 1.5rem;">+500</div>
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button id="btn-victory-next" class="btn-fantasy"><i class="fa-solid fa-forward"></i> Next Realm</button>
-          <button id="btn-victory-menu" class="btn-fantasy" style="background: linear-gradient(180deg, #666, #444); border-color: #aaa;"><i class="fa-solid fa-compass"></i> Realms List</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- =========================================================================
-         COMPARE REALMS SCREEN (REAL-TIME SIDE-BY-SIDE SIMULATION)
-         ========================================================================= -->
-    <div id="compare-realms-modal" class="compare-realms-screen hidden">
-      
-      <!-- Compare HUD Header -->
-      <div class="compare-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span class="font-fantasy" style="font-size: 1.4rem; color: var(--color-gold); text-shadow: 0 0 8px var(--color-gold-glow);"><i class="fa-solid fa-chart-column"></i> Compare Realms</span>
-          <span style="color: #a0aec0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Live Simulation Dashboard</span>
+        <div class="concept-summary" id="victory-summary">
+          <strong>What you learned:</strong> Breadth-First Search (BFS) explores all nodes at the present depth before moving deeper, ensuring the shortest path is found!
         </div>
 
-        <!-- Simulation Speed & Controls -->
-        <div style="display: flex; align-items: center; gap: 20px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 0.75rem; color: #a0aec0;">Simulation Speed:</span>
-            <input type="range" id="compare-speed-slider" min="200" max="2000" step="100" value="800" style="accent-color: var(--color-gold); width: 120px; cursor: pointer;">
-            <span id="compare-speed-text" style="font-size: 0.75rem; font-family: 'MedievalSharp', cursive; width: 45px; text-align: right;">0.8s</span>
-          </div>
-
-          <div style="display: flex; gap: 8px;">
-            <button id="btn-compare-run" class="btn-fantasy" style="background: linear-gradient(180deg, #1d6e3c, #114224); border-color: var(--color-success);"><i class="fa-solid fa-play"></i> Start Race</button>
-            <button id="btn-compare-reset" class="btn-fantasy" style="background: linear-gradient(180deg, #6b4321, #462c16);"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-            <button id="btn-compare-close" class="btn-fantasy" style="background: linear-gradient(180deg, #7c2f2f, #4d1515); border-color: #ff3366;"><i class="fa-solid fa-circle-xmark"></i> Return</button>
-          </div>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+          <button id="btn-victory-next" class="btn-fantasy"><i class="fa-solid fa-forward"></i> Continue Journey</button>
         </div>
       </div>
-
-      <!-- Compare Body Grid (Split screen) -->
-      <div class="compare-body">
-        
-        <!-- Left Realm Panel (BFS Mode) -->
-        <div class="compare-realm-panel bfs">
-          <div class="compare-canvas-title bfs-title">
-            <span>🛡️ Realm of the Wide Winds (BFS Algorithm)</span>
-            <span style="font-size: 0.7rem; color: #a0aec0;">FIFO Queue Traversal</span>
-          </div>
-          
-          <div class="compare-canvas-wrapper">
-            <canvas id="compare-bfs-canvas" class="compare-canvas"></canvas>
-            
-            <!-- Statistics overlay -->
-            <div class="compare-stats-overlay">
-              <div class="compare-stat-row">
-                <span>Visited Nodes:</span>
-                <span class="compare-stat-val" id="comp-bfs-visited">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Max Queue Size:</span>
-                <span class="compare-stat-val" id="comp-bfs-max-mem">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Steps to Goal:</span>
-                <span class="compare-stat-val" id="comp-bfs-steps">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Final Path Length:</span>
-                <span class="compare-stat-val" id="comp-bfs-path-len">-</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Realm Panel (DFS Mode) -->
-        <div class="compare-realm-panel dfs">
-          <div class="compare-canvas-title dfs-title">
-            <span>🌋 Realm of the Deep Chasm (DFS Algorithm)</span>
-            <span style="font-size: 0.7rem; color: #a0aec0;">LIFO Stack Traversal</span>
-          </div>
-
-          <div class="compare-canvas-wrapper">
-            <canvas id="compare-dfs-canvas" class="compare-canvas"></canvas>
-            
-            <!-- Statistics overlay -->
-            <div class="compare-stats-overlay">
-              <div class="compare-stat-row">
-                <span>Visited Nodes:</span>
-                <span class="compare-stat-val" id="comp-dfs-visited">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Max Stack Depth:</span>
-                <span class="compare-stat-val" id="comp-dfs-max-mem">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Steps to Goal:</span>
-                <span class="compare-stat-val" id="comp-dfs-steps">0</span>
-              </div>
-              <div class="compare-stat-row">
-                <span>Final Path Length:</span>
-                <span class="compare-stat-val" id="comp-dfs-path-len">-</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- =========================================================================
-         ACHIEVEMENTS POPUP TOAST
-         ========================================================================= -->
-    <div id="achievement-toast-container" style="pointer-events: none; z-index: 10000; position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-      <!-- Toast banners populated dynamically here -->
     </div>
 
   </div>
 
-  <!-- GSAP Animation Library for Cinematic Transitions -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <!-- Main Game logic execution module -->
-  <script src="game.js"></script>
+  <script src="game-v3.js"></script>
 </body>
 </html>
