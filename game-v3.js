@@ -74,6 +74,65 @@ class GameController {
   _bindEvents() {
     // Start Menu bindings
     $('btn-mode-story').onclick = () => this.startStoryMode();
+    $('btn-mode-challenge').onclick = () => this.startChallengeMode();
+    $('btn-mode-compare').onclick = () => this.startCompareRealms();
+    
+    $('btn-compare-close').onclick = () => {
+      $('compare-overlay').classList.add('hidden');
+    };
+    
+    $('btn-compare-simulate').onclick = () => {
+      $('compare-text-view').classList.add('hidden');
+      $('compare-arena-view').classList.remove('hidden');
+      this.initParallelSimulation();
+    };
+
+    $('btn-sim-back').onclick = () => {
+      if (this.simState && this.simState.timer) {
+        clearInterval(this.simState.timer);
+      }
+      $('compare-text-view').classList.remove('hidden');
+      $('compare-arena-view').classList.add('hidden');
+    };
+
+    $('btn-sim-play').onclick = () => {
+      $('btn-sim-play').classList.add('hidden');
+      $('btn-sim-pause').classList.remove('hidden');
+      if (this.simState) {
+        if (this.simState.stepIndex >= 5) {
+          this.initParallelSimulation();
+        }
+        this.simState.timer = setInterval(() => {
+          this.stepParallelSimulation();
+        }, 1800);
+      }
+    };
+
+    $('btn-sim-pause').onclick = () => {
+      $('btn-sim-play').classList.remove('hidden');
+      $('btn-sim-pause').classList.add('hidden');
+      if (this.simState && this.simState.timer) {
+        clearInterval(this.simState.timer);
+        this.simState.timer = null;
+      }
+    };
+
+    $('btn-sim-step').onclick = () => {
+      if (this.simState) {
+        if (this.simState.stepIndex >= 5) {
+          this.initParallelSimulation();
+        } else {
+          this.stepParallelSimulation();
+        }
+      }
+    };
+
+    $('btn-sim-reset').onclick = () => {
+      this.initParallelSimulation();
+      $('btn-sim-play').classList.remove('hidden');
+      $('btn-sim-pause').classList.add('hidden');
+    };
+
     $('btn-mode-custom').onclick = () => {
       $('menu-main-view').classList.add('hidden');
       $('menu-custom-view').classList.remove('hidden');
@@ -197,6 +256,9 @@ class GameController {
         this.updateAlgoVisuals();
         this.updateClue();
         this.updateChoiceButtons();
+        
+        const prev = this.visited.length > 0 ? this.visited[this.visited.length - 1] : this.level.startNode;
+        this.renderer.slidePlayerTo(prev);
       }
     };
 
@@ -208,6 +270,12 @@ class GameController {
   startStoryMode() {
     $('start-menu').classList.add('hidden');
     $('victory-overlay').classList.add('hidden');
+    
+    // Enable powerup buttons for story mode
+    $('powerup-hint').style.display = 'flex';
+    $('powerup-shield').style.display = 'flex';
+    this.isChallengeMode = false;
+    
     this.currentLevelIndex = 0;
     
     $('diff-easy').classList.add('active');
@@ -215,6 +283,275 @@ class GameController {
     $('diff-hard').classList.remove('active');
     
     this.loadLevel(LEVELS[0]);
+  }
+
+  startChallengeMode() {
+    $('start-menu').classList.add('hidden');
+    $('victory-overlay').classList.add('hidden');
+    
+    // Procedural randomized challenge graph layout
+    const challengeLevel = {
+      id: 99,
+      name: "Void of Time",
+      region: "WATERFALL", // Cosmic high intensity waterfall region
+      mode: this.mode,
+      startNode: "A",
+      nodes: {
+        "A": { x: 0.5, y: 0.15 },
+        "B": { x: 0.25, y: 0.4 },
+        "C": { x: 0.75, y: 0.4 },
+        "D": { x: 0.1, y: 0.7 },
+        "E": { x: 0.4, y: 0.65 },
+        "F": { x: 0.6, y: 0.65 },
+        "G": { x: 0.9, y: 0.7 },
+        "H": { x: 0.5, y: 0.9 }
+      },
+      edges: [
+        ["A", "B"], ["A", "C"], ["B", "D"], ["B", "E"],
+        ["C", "F"], ["C", "G"], ["D", "H"], ["E", "H"],
+        ["F", "H"], ["G", "H"]
+      ]
+    };
+    
+    this.isChallengeMode = true;
+    this.timeLeft = 45; // Very strict 45 seconds timer Attack!
+    
+    // Hide magical powerups for true test of algorithmic strategy!
+    $('powerup-hint').style.display = 'none';
+    $('powerup-shield').style.display = 'none';
+    
+    this.currentLevelIndex = 99;
+    this.loadLevel(challengeLevel);
+    
+    this.ai.say(`⏱️ <b>Void of Time (Challenge Mode) Loaded!</b> You must restore the ancient paths within **45 seconds** without Hints or Shields! Flawless traversal grants **Double XP (+1000 XP)**!`);
+  }
+
+  startCompareRealms() {
+    $('compare-overlay').classList.remove('hidden');
+    // Ensure we reset visual showdown states when launching
+    $('compare-text-view').classList.remove('hidden');
+    $('compare-arena-view').classList.add('hidden');
+  }
+
+  initParallelSimulation() {
+    if (this.simState && this.simState.timer) {
+      clearInterval(this.simState.timer);
+    }
+    
+    this.simState = {
+      active: false,
+      timer: null,
+      stepIndex: 0,
+      bfs: {
+        visited: [],
+        queue: ["A"],
+        history: [],
+        currentNode: null,
+        log: "Ready... Click <b>Run Showdown</b> or <b>Step Forward</b> to begin exploring Node <b>A</b>!"
+      },
+      dfs: {
+        visited: [],
+        stack: ["A"],
+        history: [],
+        currentNode: null,
+        log: "Ready... Click <b>Run Showdown</b> or <b>Step Forward</b> to begin exploring Node <b>A</b>!"
+      }
+    };
+    
+    this.updateSimHUD();
+    this.drawSimArenas();
+  }
+
+  stepParallelSimulation() {
+    const s = this.simState;
+    if (s.stepIndex >= 5) {
+      if (s.timer) {
+        clearInterval(s.timer);
+        s.timer = null;
+        $('btn-sim-play').classList.remove('hidden');
+        $('btn-sim-pause').classList.add('hidden');
+      }
+      return;
+    }
+    
+    s.stepIndex++;
+    
+    // --- 1. BFS Traversal Tick ---
+    const b = s.bfs;
+    if (s.stepIndex === 1) {
+      b.currentNode = 'A';
+      b.visited.push('A');
+      b.queue = ['B', 'C'];
+      b.log = "Pops <b>A</b> from front. Enqueues unvisited neighbors <b>B and C</b> to the back of the queue.";
+    } else if (s.stepIndex === 2) {
+      b.currentNode = 'B';
+      b.visited.push('B');
+      b.history.push('A-B');
+      b.queue = ['C', 'D'];
+      b.log = "Pops <b>B</b> (front of Queue). Enqueues neighbor <b>D</b> to the back of the queue.";
+    } else if (s.stepIndex === 3) {
+      b.currentNode = 'C';
+      b.visited.push('C');
+      b.history.push('A-C');
+      b.queue = ['D', 'E'];
+      b.log = "Pops <b>C</b> next because it was older in the queue than D! (Level-1 layer finished). Enqueues neighbor <b>E</b>.";
+    } else if (s.stepIndex === 4) {
+      b.currentNode = 'D';
+      b.visited.push('D');
+      b.history.push('B-D');
+      b.queue = ['E'];
+      b.log = "Pops <b>D</b> from front. No unvisited neighbors remaining.";
+    } else if (s.stepIndex === 5) {
+      b.currentNode = 'E';
+      b.visited.push('E');
+      b.history.push('C-E');
+      b.queue = [];
+      b.log = "Pops <b>E</b> from front. Wavefront exploration fully completed!";
+    }
+    
+    // --- 2. DFS Traversal Tick ---
+    const d = s.dfs;
+    if (s.stepIndex === 1) {
+      d.currentNode = 'A';
+      d.visited.push('A');
+      d.stack = ['C', 'B']; // Pushing C then B to put B on top
+      d.log = "Pops <b>A</b> from stack. Pushes neighbors <b>C and B</b>. Node <b>B</b> is at the top of stack.";
+    } else if (s.stepIndex === 2) {
+      d.currentNode = 'B';
+      d.visited.push('B');
+      d.history.push('A-B');
+      d.stack = ['C', 'D']; // B popped, D pushed on top
+      d.log = "Pops <b>B</b> (top of Stack). Pushes child neighbor <b>D</b> on top, driving the search deeper.";
+    } else if (s.stepIndex === 3) {
+      d.currentNode = 'D';
+      d.visited.push('D');
+      d.history.push('B-D');
+      d.stack = ['C']; // D popped, reaches dead end, only C left
+      d.log = "Pops <b>D</b> (top of Stack). Reaches a dead-end! Backtracks to the next available stack node.";
+    } else if (s.stepIndex === 4) {
+      d.currentNode = 'C';
+      d.visited.push('C');
+      d.history.push('A-C');
+      d.stack = ['E']; // C popped, E pushed on top
+      d.log = "Pops <b>C</b> from stack. Pushes child neighbor <b>E</b> on top of the stack.";
+    } else if (s.stepIndex === 5) {
+      d.currentNode = 'E';
+      d.visited.push('E');
+      d.history.push('C-E');
+      d.stack = [];
+      d.log = "Pops <b>E</b> from top. Deep branch traversal fully completed!";
+    }
+    
+    this.updateSimHUD();
+    this.drawSimArenas();
+    
+    // Auto pause at the end
+    if (s.stepIndex >= 5 && s.timer) {
+      clearInterval(s.timer);
+      s.timer = null;
+      $('btn-sim-play').classList.remove('hidden');
+      $('btn-sim-pause').classList.add('hidden');
+    }
+  }
+
+  updateSimHUD() {
+    const s = this.simState;
+    $('sim-queue-val').innerHTML = s.bfs.queue.length > 0 ? `[ ${s.bfs.queue.join(', ')} ]` : 'Empty';
+    $('sim-bfs-status').innerHTML = s.bfs.log;
+    
+    $('sim-stack-val').innerHTML = s.dfs.stack.length > 0 ? `[ ${s.dfs.stack.join(', ')} ]` : 'Empty';
+    $('sim-dfs-status').innerHTML = s.dfs.log;
+  }
+
+  drawSimArenas() {
+    this.renderSimNodeGraph('sim-canvas-bfs', 'BFS', this.simState.bfs);
+    this.renderSimNodeGraph('sim-canvas-dfs', 'DFS', this.simState.dfs);
+  }
+
+  renderSimNodeGraph(canvasId, type, state) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const isBFS = type === 'BFS';
+    const mainColor = isBFS ? '#00d2ff' : '#ffaa00';
+    const activeColor = '#ffd700'; // Gold head
+    
+    // Graph node layout
+    const nodes = {
+      "A": { x: 50, y: 125 },
+      "B": { x: 175, y: 65 },
+      "C": { x: 175, y: 185 },
+      "D": { x: 320, y: 65 },
+      "E": { x: 320, y: 185 }
+    };
+    const edges = [
+      ["A", "B"], ["A", "C"], ["B", "D"], ["C", "E"]
+    ];
+    
+    // 1. Draw Edges
+    edges.forEach(([u, v]) => {
+      ctx.beginPath();
+      ctx.moveTo(nodes[u].x, nodes[u].y);
+      ctx.lineTo(nodes[v].x, nodes[v].y);
+      
+      const uVisited = state.visited.includes(u);
+      const vVisited = state.visited.includes(v);
+      const isTraversed = uVisited && vVisited && 
+        (state.history.includes(`${u}-${v}`) || state.history.includes(`${v}-${u}`));
+      
+      if (isTraversed) {
+        ctx.strokeStyle = mainColor;
+        ctx.lineWidth = 4;
+      } else {
+        ctx.strokeStyle = '#2d3748';
+        ctx.lineWidth = 2.5;
+      }
+      ctx.stroke();
+    });
+    
+    // 2. Draw Nodes
+    Object.entries(nodes).forEach(([name, pos]) => {
+      const isVisited = state.visited.includes(name);
+      const isActive = state.currentNode === name;
+      const inStructure = isBFS ? state.queue.includes(name) : state.stack.includes(name);
+      
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 16, 0, Math.PI * 2);
+      
+      if (isActive) {
+        ctx.fillStyle = activeColor;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+      } else if (isVisited) {
+        ctx.fillStyle = mainColor;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
+      } else if (inStructure) {
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = mainColor;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 3]);
+      } else {
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.5;
+      }
+      
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Node Text
+      ctx.font = "bold 12px 'Cinzel', serif";
+      ctx.fillStyle = (isActive || isVisited) ? '#0f172a' : '#94a3b8';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(name, pos.x, pos.y);
+    });
   }
 
   generateCustomGraph() {
@@ -402,6 +739,7 @@ class GameController {
       this.setupSlots();
       this.updateAlgoVisuals();
       this.renderer.playCorrectVFX(nodeId);
+      this.renderer.slidePlayerTo(nodeId);
       
       if(this.visited.length === this.expectedOrder.length) {
         this.ai.say(`🎉 <b>Excellent job, Pathfinder!</b> You have successfully restored the ancient energy paths of this realm!`);
@@ -539,6 +877,15 @@ class GameController {
 
   showVictory() {
     $('victory-overlay').classList.remove('hidden');
+    
+    if (this.isChallengeMode) {
+      $('victory-xp').innerText = '+1000 XP';
+      $('victory-stars').innerText = '⭐⭐⭐⭐⭐';
+    } else {
+      $('victory-xp').innerText = '+500 XP';
+      $('victory-stars').innerText = '⭐⭐⭐';
+    }
+    
     $('victory-summary').className = `concept-summary ${this.mode.toLowerCase()}-concept`;
     $('victory-summary').innerHTML = `<strong>What you learned:</strong> ${this.mode === 'BFS' ? 'BFS explores layer by layer, guaranteeing the shortest path in unweighted graphs!' : 'DFS dives as deeply as possible, making it great for finding paths through mazes and topological sorting!'}`;
   }
@@ -553,6 +900,16 @@ class GameRenderer {
     this.canvas = $('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.particles = [];
+    
+    // Player avatar slide variables
+    this.heroImg = new Image();
+    this.heroImg.src = 'assets/hero_character.png';
+    this.playerNode = null;
+    this.playerX = null;
+    this.playerY = null;
+    this.animProgress = 1.0;
+    this.animSource = null;
+    this.animTarget = null;
     
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -585,6 +942,32 @@ class GameRenderer {
     this.nodes = JSON.parse(JSON.stringify(level.nodes));
     this.edges = level.edges;
     this.initParticles();
+    
+    // Position player avatar at the start node
+    this.playerNode = level.startNode;
+    const startPos = this.getCanvasCoords(this.nodes[level.startNode].x, this.nodes[level.startNode].y);
+    this.playerX = startPos.x;
+    this.playerY = startPos.y;
+    this.animProgress = 1.0;
+  }
+
+  slidePlayerTo(nodeId) {
+    const prevNode = this.playerNode;
+    this.playerNode = nodeId;
+    
+    if (prevNode && this.nodes[prevNode]) {
+      const src = this.getCanvasCoords(this.nodes[prevNode].x, this.nodes[prevNode].y);
+      const dest = this.getCanvasCoords(this.nodes[nodeId].x, this.nodes[nodeId].y);
+      
+      this.animSource = src;
+      this.animTarget = dest;
+      this.animProgress = 0.0; // Trigger easing slide animation
+    } else {
+      const dest = this.getCanvasCoords(this.nodes[nodeId].x, this.nodes[nodeId].y);
+      this.playerX = dest.x;
+      this.playerY = dest.y;
+      this.animProgress = 1.0;
+    }
   }
 
   initParticles() {
@@ -641,6 +1024,68 @@ class GameRenderer {
     loop();
   }
   
+  drawPlayerAvatar() {
+    if (this.playerX === null || this.playerY === null) return;
+
+    this.ctx.save();
+    
+    // Draw animated golden pulsing ring behind player
+    const pulseRadius = 24 + Math.sin(Date.now() / 150) * 3;
+    this.ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+    this.ctx.shadowBlur = 15;
+    this.ctx.strokeStyle = '#ffd700';
+    this.ctx.lineWidth = 3;
+    this.ctx.beginPath();
+    this.ctx.arc(this.playerX, this.playerY, pulseRadius, 0, Math.PI * 2);
+    this.ctx.stroke();
+    this.ctx.shadowBlur = 0; 
+
+    // Draw active glowing Ley-Line shield/token
+    this.ctx.beginPath();
+    this.ctx.arc(this.playerX, this.playerY, 20, 0, Math.PI * 2);
+    
+    // Load character image inside circular token clip, with gorgeous medieval border
+    if (this.heroImg && this.heroImg.complete && this.heroImg.naturalWidth !== 0) {
+      this.ctx.clip();
+      this.ctx.drawImage(this.heroImg, this.playerX - 20, this.playerY - 20, 40, 40);
+    } else {
+      // Fallback stylized graphics: Hooded explorer boy with golden staff badge
+      const grad = this.ctx.createRadialGradient(this.playerX, this.playerY, 2, this.playerX, this.playerY, 20);
+      grad.addColorStop(0, '#ffd700');
+      grad.addColorStop(0.5, '#b8860b');
+      grad.addColorStop(1, '#1a1005');
+      this.ctx.fillStyle = grad;
+      this.ctx.fill();
+      
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.font = '14px serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('⭐', this.playerX, this.playerY);
+    }
+    
+    this.ctx.restore();
+    
+    // Draw small medieval banner saying "YOU" above the head
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    this.ctx.strokeStyle = '#ffd700';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    if (this.ctx.roundRect) {
+      this.ctx.roundRect(this.playerX - 22, this.playerY - 42, 44, 16, 4);
+    } else {
+      this.ctx.rect(this.playerX - 22, this.playerY - 42, 44, 16);
+    }
+    this.ctx.fill();
+    this.ctx.stroke();
+    
+    this.ctx.fillStyle = '#ffd700';
+    this.ctx.font = 'bold 10px Cinzel';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText('YOU', this.playerX, this.playerY - 33);
+  }
+
   render() {
     this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     
@@ -674,39 +1119,47 @@ class GameRenderer {
       const isVisited = this.ctrl.visited.includes(u) && this.ctrl.visited.includes(v);
       
       if (isVisited) {
-        // Glowing Neon Underlay
-        this.ctx.strokeStyle = this.ctrl.mode === 'BFS' ? 'rgba(0, 210, 255, 0.45)' : 'rgba(255, 157, 0, 0.45)';
-        this.ctx.lineWidth = 10;
+        // High-Intensity Glowing Neon Underlay (Vastly increased thickness and opacity)
+        this.ctx.strokeStyle = this.ctrl.mode === 'BFS' ? 'rgba(0, 210, 255, 0.6)' : 'rgba(255, 140, 0, 0.6)';
+        this.ctx.lineWidth = 18;
         this.ctx.beginPath();
         this.ctx.moveTo(c1.x, c1.y);
         this.ctx.lineTo(c2.x, c2.y);
         this.ctx.stroke();
 
-        // Main Solid Core Energy Path
-        this.ctx.strokeStyle = this.ctrl.mode === 'BFS' ? '#00d2ff' : '#ff9d00';
-        this.ctx.lineWidth = 4;
+        // Thick Solid Core Energy Path
+        this.ctx.strokeStyle = this.ctrl.mode === 'BFS' ? '#00e5ff' : '#ffaa00';
+        this.ctx.lineWidth = 7;
         this.ctx.beginPath();
         this.ctx.moveTo(c1.x, c1.y);
         this.ctx.lineTo(c2.x, c2.y);
         this.ctx.stroke();
 
-        // Animated Sliding Ley Line Spark
+        // Animated Sliding Ley Line Spark (Larger, more intense glow orb)
         const time = (Date.now() / 800) % 1.0; 
         const sparkX = c1.x + (c2.x - c1.x) * time;
         const sparkY = c1.y + (c2.y - c1.y) * time;
 
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.shadowColor = this.ctrl.mode === 'BFS' ? '#00d2ff' : '#ff9d00';
-        this.ctx.shadowBlur = 10;
+        this.ctx.shadowColor = this.ctrl.mode === 'BFS' ? '#00e5ff' : '#ffaa00';
+        this.ctx.shadowBlur = 18;
         this.ctx.beginPath();
-        this.ctx.arc(sparkX, sparkY, 4, 0, Math.PI*2);
+        this.ctx.arc(sparkX, sparkY, 6.5, 0, Math.PI*2);
         this.ctx.fill();
         this.ctx.shadowBlur = 0; 
       } else {
-        // Highly visible golden dashed pathway
-        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.48)'; 
-        this.ctx.lineWidth = 3.5;
-        this.ctx.setLineDash([6, 6]); 
+        // High-Contrast Dark Backing Path (Guarantees visibility over bright image details)
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)'; 
+        this.ctx.lineWidth = 9;
+        this.ctx.beginPath();
+        this.ctx.moveTo(c1.x, c1.y);
+        this.ctx.lineTo(c2.x, c2.y);
+        this.ctx.stroke();
+
+        // Thick, Highly Visible Golden Dashed Pathway
+        this.ctx.strokeStyle = 'rgba(255, 223, 75, 0.9)'; 
+        this.ctx.lineWidth = 5;
+        this.ctx.setLineDash([8, 8]); 
         this.ctx.beginPath();
         this.ctx.moveTo(c1.x, c1.y);
         this.ctx.lineTo(c2.x, c2.y);
@@ -758,6 +1211,28 @@ class GameRenderer {
       this.ctx.textBaseline = 'middle';
       this.ctx.fillText(id, coords.x, coords.y);
     }
+
+    // Update and draw player avatar positions
+    if (this.animProgress < 1.0) {
+      this.animProgress += 0.025; // Easing over ~40 frames
+      if (this.animProgress >= 1.0) {
+        this.animProgress = 1.0;
+        this.playerX = this.animTarget.x;
+        this.playerY = this.animTarget.y;
+      } else {
+        // Easing interpolation
+        const t = this.animProgress;
+        const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        this.playerX = this.animSource.x + (this.animTarget.x - this.animSource.x) * ease;
+        this.playerY = this.animSource.y + (this.animTarget.y - this.animSource.y) * ease;
+      }
+    } else if (this.playerNode && this.nodes[this.playerNode]) {
+      const currentPos = this.getCanvasCoords(this.nodes[this.playerNode].x, this.nodes[this.playerNode].y);
+      this.playerX = currentPos.x;
+      this.playerY = currentPos.y;
+    }
+
+    this.drawPlayerAvatar();
   }
 }
 
