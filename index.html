@@ -13,6 +13,40 @@
 </head>
 <body>
 
+  <!-- High-Fidelity RPG Splash Screen -->
+  <div id="splash-screen" class="overlay-screen">
+    <div class="splash-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+      
+      <!-- Logo Container -->
+      <div class="splash-logo-wreath-wrap" style="position: relative; animation: logo-float 4s ease-in-out infinite;">
+        <!-- Left & Right Leaf Ivy Branches flanking the logo -->
+        <div class="ivy-branch left"><i class="fa-solid fa-leaf"></i></div>
+        <div class="ivy-branch right"><i class="fa-solid fa-leaf"></i></div>
+        
+        <!-- Main Logo Title -->
+        <h1 class="splash-logo-title font-fantasy">
+          GRAPH<br>QUEST
+        </h1>
+        
+        <!-- Red/Gold Banner underneath -->
+        <div class="splash-logo-banner font-medieval">
+          BFS vs DFS
+        </div>
+      </div>
+      
+      <!-- Start prompt -->
+      <div class="splash-action-box" style="margin-top: 35px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <button id="btn-start-game" class="btn-fantasy splash-start-btn">
+          <i class="fa-solid fa-play"></i> START QUEST
+        </button>
+        <div class="splash-press-enter font-medieval">
+          [ Press ENTER to Begin ]
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
   <!-- Game Main Screen Grid Layout -->
   <div class="game-container-grid">
     
@@ -78,9 +112,9 @@
         </div>
 
         <div class="hud-top-actions">
-          <button id="btn-sound" class="mute-btn"><i class="fa-solid fa-volume-high"></i></button>
-          <button id="btn-help" class="help-btn-v4"><i class="fa-solid fa-question"></i></button>
+          <button id="powerup-rewind" class="btn-fantasy small" style="background: linear-gradient(180deg, #b8860b, #8b5a2b); border-color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);"><i class="fa-solid fa-backward"></i> Rewind</button>
           <button id="btn-hud-menu" class="btn-fantasy small"><i class="fa-solid fa-gear"></i> Menu</button>
+          <button id="btn-hud-exit" class="btn-fantasy small" style="background: linear-gradient(180deg, #d63351, #991029); border-color: #ff5577; box-shadow: 0 0 10px rgba(255, 51, 85, 0.35);"><i class="fa-solid fa-right-from-bracket"></i> Exit</button>
         </div>
       </div>
 
@@ -130,9 +164,6 @@
             <div id="guide-dialogue" class="guide-text-v4">
               ✨ <b>Breadth-First Search (BFS)</b> is like a ripple in a pond. Starting at the root, we explore the graph layer-by-layer, visiting all immediate neighbors first.
             </div>
-            <div id="guide-hint-text" class="guide-hint-v4">
-              💡 <b>First Step:</b> Drag or click Node <b>A</b> to begin!
-            </div>
           </div>
         </div>
       </div>
@@ -151,7 +182,6 @@
       <!-- Powerups / Controls -->
       <div class="powerups-panel-v4">
         <button id="powerup-hint" class="btn-powerup-v4" title="Hint"><i class="fa-solid fa-lightbulb"></i><span class="p-name">HINT</span><span class="p-count">2</span></button>
-        <button id="powerup-rewind" class="btn-powerup-v4" title="Rewind"><i class="fa-solid fa-backward"></i><span class="p-name">REWIND</span><span class="p-count">1</span></button>
         <button id="powerup-shield" class="btn-powerup-v4" title="Shield"><i class="fa-solid fa-shield-halved"></i><span class="p-name">SHIELD</span><span class="p-count">1</span></button>
       </div>
     </div>
@@ -161,6 +191,9 @@
   <!-- Start Menu / Parchment Overlay -->
   <div id="start-menu" class="overlay-screen">
     <div class="scroll-panel start-panel">
+      <!-- Close Button (X mark on top-right) -->
+      <button id="btn-menu-close" class="menu-close-x-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+
       <!-- Left Column (Hero Title & Lore Cartographer Profile) -->
       <div class="start-left-hero">
         <div class="start-logo-area">
@@ -191,6 +224,14 @@
       <div class="start-right-menu">
         <!-- Main menu actions -->
         <div id="menu-main-view" style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
+          <div id="btn-mode-adventure" class="action-card-v4 adventure-primary-btn">
+            <i class="fa-solid fa-compass"></i>
+            <div class="action-details">
+              <h4 class="action-title">Choose Your Adventure</h4>
+              <span class="action-desc">Begin your journey and guide Pathfinders through the realms.</span>
+            </div>
+          </div>
+
           <div id="btn-mode-story" class="action-card-v4">
             <i class="fa-solid fa-book-journal-whills"></i>
             <div class="action-details">
@@ -207,13 +248,7 @@
             </div>
           </div>
 
-          <div id="btn-mode-custom" class="action-card-v4">
-            <i class="fa-solid fa-pen-nib"></i>
-            <div class="action-details">
-              <h4 class="action-title">Custom Realm</h4>
-              <span class="action-desc">Forge custom grids with custom layouts.</span>
-            </div>
-          </div>
+
 
           <div id="btn-mode-compare" class="action-card-v4">
             <i class="fa-solid fa-code-compare"></i>
@@ -224,48 +259,17 @@
           </div>
         </div>
 
-        <!-- Custom Graph Input Form (Hidden by default) -->
-        <div class="scroll-body hidden" id="menu-custom-view" style="width: 100%;">
-          <h3 class="font-fantasy" style="color: var(--color-gold); border-bottom: 1px dashed var(--color-gold); padding-bottom: 5px; margin-bottom: 15px;">Create Custom Realm</h3>
-          <div class="custom-input-group">
-            <label>Nodes (Comma separated, e.g. A,B,C,D,E)</label>
-            <input type="text" id="custom-nodes-input" class="magical-input" placeholder="A, B, C, D, E" value="A, B, C, D, E, F">
-          </div>
-          <div class="custom-input-group">
-            <label>Connections (e.g. A-B, A-C)</label>
-            <textarea id="custom-edges-input" class="magical-input" rows="3" placeholder="A-B, A-C, B-D">A-B, A-C, B-D, B-E, C-F</textarea>
-          </div>
-          <div class="custom-input-group row-group">
-            <div>
-              <label>Starting Node</label>
-              <input type="text" id="custom-start-input" class="magical-input short" placeholder="A" value="A">
-            </div>
-            <div>
-              <label>Algorithm</label>
-              <select id="custom-algo-select" class="magical-select">
-                <option value="BFS">Breadth-First Search (BFS)</option>
-                <option value="DFS">Depth-First Search (DFS)</option>
-              </select>
-            </div>
-          </div>
-          <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button id="btn-generate-custom" class="btn-fantasy"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate World</button>
-            <button id="btn-back-main" class="btn-fantasy" style="background: linear-gradient(180deg, #555, #333); border-color: #999;"><i class="fa-solid fa-arrow-left"></i> Back</button>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
 
   <!-- Victory overlay popup -->
   <div id="victory-overlay" class="overlay-screen hidden">
-    <div class="scroll-panel" style="max-width: 600px; text-align: center;">
-      <div style="font-size: 4rem; color: var(--color-gold); filter: drop-shadow(0 0 10px rgba(255,215,0,0.5)); animation: float-slow 3s infinite alternate;">
-        <i class="fa-solid fa-trophy"></i>
-      </div>
-      <h1 class="scroll-title font-fantasy">Realm Restored!</h1>
+    <div class="scroll-panel" style="max-width: 600px; text-align: center; gap: 14px;">
+      <h1 class="scroll-title font-fantasy" style="margin-top: 10px;">Realm Restored!</h1>
       
-      <div class="victory-stats-grid">
+      <div class="victory-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
         <div class="v-stat">
           <span>Stars</span>
           <div id="victory-stars" style="color: var(--color-gold); font-size: 1.5rem;">⭐⭐⭐</div>
@@ -274,21 +278,322 @@
           <span>Accuracy</span>
           <div id="victory-accuracy" class="font-medieval" style="font-size: 1.5rem;">100%</div>
         </div>
-        <div class="v-stat">
-          <span>XP Gained</span>
-          <div id="victory-xp" class="font-medieval" style="font-size: 1.5rem;">+500</div>
-        </div>
       </div>
 
-      <div class="concept-summary" id="victory-summary">
+      <div class="concept-summary" id="victory-summary" style="margin-top: 5px;">
         <strong>What you learned:</strong> Breadth-First Search (BFS) explores all nodes at the present depth before moving deeper, ensuring the shortest path is found!
       </div>
 
-      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+      <!-- High-Fidelity Final Traversal Graph Canvas View -->
+      <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 10px 0;">
+        <span class="font-medieval" style="color: var(--wood-dark); font-size: 0.8rem; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">Your Traversed Path</span>
+        <canvas id="victory-canvas" width="460" height="220" style="background: rgba(15, 20, 30, 0.94); border: 3px double #8b5a2b; border-radius: 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 6px 15px rgba(0,0,0,0.15); display: block; max-width: 100%; height: auto;"></canvas>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 100%;">
         <button id="btn-victory-next" class="btn-fantasy"><i class="fa-solid fa-forward"></i> Continue Journey</button>
         <button id="btn-victory-stay" class="btn-fantasy" style="background: linear-gradient(180deg, #2b3952, #172030); border-color: #4c5d80;"><i class="fa-solid fa-eye"></i> Stay on Page</button>
         <button id="btn-victory-home" class="btn-fantasy" style="background: linear-gradient(180deg, #555, #333); border-color: #999;"><i class="fa-solid fa-house"></i> Home Page</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Incorrect Move Overlay -->
+  <div id="incorrect-overlay" class="overlay-screen hidden">
+    <div class="feedback-card wrong" style="max-width: 540px;">
+      <div class="feedback-icon" style="animation: float-slow 3s infinite alternate;">
+        <i class="fa-solid fa-skull-crossbones"></i>
+      </div>
+      <h2 class="feedback-title font-fantasy" style="color: var(--error); text-shadow: 0 0 10px var(--error-glow); margin-bottom: 15px;">Path Blocked!</h2>
+      <div class="feedback-explanation" style="font-size: 0.92rem; line-height: 1.6; margin-bottom: 22px;">
+        <p id="incorrect-explanation-text">
+          A magical barrier prevents you from traversing to this node. Learn the algorithmic rules and choose the correct step!
+        </p>
+      </div>
+      <button id="btn-incorrect-retry" class="btn-fantasy" style="margin: 0 auto; padding: 10px 24px; background: linear-gradient(180deg, #d63351, #991029); border-color: #ff5577; font-size: 0.88rem; box-shadow: 0 0 15px rgba(255, 51, 85, 0.45);"><i class="fa-solid fa-rotate-right"></i> Try Again</button>
+    </div>
+  </div>
+
+  <!-- Compare Realms Overlay -->
+  <!-- Adventure Selector Overlay -->
+  <div id="adventure-overlay" class="overlay-screen hidden" style="background: radial-gradient(circle, rgba(15, 10, 5, 0.96) 0%, rgba(5, 3, 2, 0.99) 100%); z-index: 200;">
+    <div class="scroll-panel start-panel" style="max-width: 1040px; width: 95%; max-height: 92vh; padding: 25px 35px; display: flex; flex-direction: column; gap: 20px; border: 6px double #8b5a2b; background: rgba(26, 18, 10, 0.95); box-shadow: inset 0 0 50px rgba(0,0,0,0.9), 0 25px 60px rgba(0,0,0,0.95); position: relative; overflow-y: auto;">
+      
+      <!-- Close Button (X mark on top-right) -->
+      <button id="btn-adventure-close" class="menu-close-x-btn" title="Close" style="color: #ffd700;"><i class="fa-solid fa-xmark"></i></button>
+
+      <!-- Immersive Header -->
+      <div style="text-align: center; width: 100%; margin-top: 5px; position: relative;">
+        <div class="adventure-title-plate font-fantasy">
+          CHOOSE YOUR ADVENTURE
+        </div>
+      </div>
+
+      <!-- Adventure 3x2 Grid -->
+      <div class="adventure-grid">
+        
+        <!-- Card 1: Waterfall Path -->
+        <div class="adventure-card" data-adventure="waterfall">
+          <div class="adventure-card-inner">
+            <img src="assets/graph_quest_bg.png" class="adventure-card-img" alt="The Waterfall Path">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <!-- Edges -->
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <!-- Nodes -->
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">THE WATERFALL PATH</div>
+          </div>
+        </div>
+
+        <!-- Card 2: Ancient Temple -->
+        <div class="adventure-card" data-adventure="temple">
+          <div class="adventure-card-inner">
+            <img src="assets/temple_bg.png" class="adventure-card-img" alt="Ancient Temple">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">ANCIENT TEMPLE</div>
+          </div>
+        </div>
+
+        <!-- Card 3: Rainforest Trail -->
+        <div class="adventure-card" data-adventure="rainforest">
+          <div class="adventure-card-inner">
+            <img src="assets/forest_bg.png" class="adventure-card-img" alt="Rainforest Trail">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">RAINFOREST TRAIL</div>
+          </div>
+        </div>
+
+        <!-- Card 4: Desert Ruins -->
+        <div class="adventure-card" data-adventure="desert">
+          <div class="adventure-card-inner">
+            <img src="assets/desert_bg.png" class="adventure-card-img" alt="Desert Ruins">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">DESERT RUINS</div>
+          </div>
+        </div>
+
+        <!-- Card 5: Crystal Caves -->
+        <div class="adventure-card" data-adventure="crystal">
+          <div class="adventure-card-inner">
+            <img src="assets/caverns_bg.png" class="adventure-card-img" alt="Crystal Caves">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">CRYSTAL CAVES</div>
+          </div>
+        </div>
+
+        <!-- Card 6: Frost Peaks -->
+        <div class="adventure-card" data-adventure="frost">
+          <div class="adventure-card-inner">
+            <img src="assets/frost_bg.png" class="adventure-card-img" alt="Frost Peaks">
+            <div class="adventure-node-overlay">
+              <svg viewBox="0 0 100 60" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;">
+                <line x1="50" y1="10" x2="30" y2="25" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="50" y1="10" x2="70" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="70" y2="25" stroke="rgba(0, 210, 255, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="30" y1="25" x2="10" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="30" y1="25" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="60" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="70" y1="25" x2="90" y2="25" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="10" y1="40" x2="35" y2="40" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="35" y1="40" x2="50" y2="52" stroke="rgba(0, 210, 255, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="50" y2="52" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                <line x1="60" y1="40" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+                <line x1="90" y1="25" x2="85" y2="40" stroke="rgba(184, 134, 11, 0.7)" stroke-width="1.2"/>
+                
+                <circle cx="50" cy="10" r="3.5" fill="#111" stroke="#ff3355" stroke-width="1"/>
+                <text x="50" y="11.2" font-size="3" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">A</text>
+                <circle cx="30" cy="25" r="3" fill="#111" stroke="#00e5ff" stroke-width="0.8"/>
+                <text x="30" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">B</text>
+                <circle cx="70" cy="25" r="3" fill="#111" stroke="#c8d8ff" stroke-width="0.8"/>
+                <text x="70" y="26.1" font-size="2.5" fill="#fff" font-family="Cinzel" text-anchor="middle" font-weight="bold">C</text>
+                <circle cx="90" cy="25" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="90" y="26.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">D</text>
+                <circle cx="10" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="10" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">E</text>
+                <circle cx="35" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="35" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">F</text>
+                <circle cx="60" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="60" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">G</text>
+                <circle cx="85" cy="40" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="85" y="41.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">H</text>
+                <circle cx="50" cy="52" r="2.5" fill="#111" stroke="#4a5568" stroke-width="0.6"/>
+                <text x="50" y="53.0" font-size="2.2" fill="#a0aec0" font-family="Cinzel" text-anchor="middle">I</text>
+              </svg>
+            </div>
+            <div class="adventure-card-nameplate font-fantasy">FROST PEAKS</div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </div>
 

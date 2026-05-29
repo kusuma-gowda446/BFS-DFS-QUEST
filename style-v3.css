@@ -5,6 +5,12 @@
 ================================================================================
 */
 
+body {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.05) 30%, rgba(0, 0, 0, 0.45) 100%), 
+              url('assets/graph_quest_bg.png') no-repeat center center fixed;
+  background-size: cover;
+}
+
 /* Core Grid Layout Override */
 .game-container-grid {
   display: grid;
@@ -12,18 +18,16 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: #05070a;
+  background: transparent;
   position: relative;
 }
 
 /* LEFT SIDEBAR styles */
 .sidebar-left {
-  background: linear-gradient(180deg, rgba(15, 20, 30, 0.95), rgba(8, 10, 15, 0.98));
-  border-right: 3px solid var(--wood-light);
-  box-shadow: 5px 0 25px rgba(0, 0, 0, 0.8), inset -2px 0 10px rgba(0,0,0,0.5);
+  background: transparent;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 20px 10px 20px 20px;
   gap: 15px;
   z-index: 20;
   overflow-y: auto;
@@ -182,7 +186,7 @@
   flex-direction: column;
   z-index: 10;
   position: relative;
-  background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.4));
+  background: transparent;
 }
 
 /* Top HUD bar */
@@ -191,18 +195,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
-  background: linear-gradient(180deg, rgba(8,10,15,0.95) 0%, rgba(8,10,15,0) 100%);
+  background: transparent;
   z-index: 15;
 }
 
 .level-badge-v4 {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 16px;
-  background: linear-gradient(145deg, var(--wood-dark), var(--wood-mid));
-  border: 2px solid var(--wood-light);
-  border-radius: 8px;
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 0 10px var(--gold-glow);
+  display: none !important;
 }
 
 .level-v4-num {
@@ -233,6 +231,10 @@
   align-items: center;
   min-width: 90px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+}
+
+.hud-stats-v4 .hud-stat-box:first-child {
+  display: none !important;
 }
 
 .hud-stat-lbl {
@@ -286,24 +288,16 @@
 .graph-gameplay-area {
   flex: 1;
   position: relative;
-  margin: 0 20px;
-  border: 3px solid var(--wood-light);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.6);
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 /* Beautiful floating island landscape layer behind canvas */
 .gameplay-bg-blur {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('assets/graph_quest_bg.png');
-  background-size: cover;
-  background-position: center;
-  z-index: 1;
+  display: none;
 }
 
 #game-canvas {
@@ -316,7 +310,7 @@
 
 /* Choice Buttons Section */
 .choice-section {
-  background: linear-gradient(180deg, rgba(8,10,15,0) 0%, rgba(8,10,15,0.95) 25%, rgba(5,6,9,1) 100%);
+  background: transparent;
   padding: 15px 25px 25px 25px;
   z-index: 15;
   display: flex;
@@ -379,12 +373,10 @@
 
 /* RIGHT SIDEBAR STYLING */
 .sidebar-right {
-  background: linear-gradient(180deg, rgba(15, 20, 30, 0.95), rgba(8, 10, 15, 0.98));
-  border-left: 3px solid var(--wood-light);
-  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.8), inset 2px 0 10px rgba(0,0,0,0.5);
+  background: transparent;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 20px 20px 20px 10px;
   gap: 15px;
   z-index: 20;
   overflow-y: auto;
@@ -587,10 +579,9 @@
    5. HIGH-FIDELITY START MENU REDESIGN
    ============================================================================ */
 #start-menu {
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.94) 100%), 
-              url('assets/graph_quest_bg.png') no-repeat center center;
-  background-size: cover;
-  backdrop-filter: blur(8px) saturate(1.2);
+  background: transparent;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   animation: fade-in 0.8s ease-out;
 }
 
@@ -608,8 +599,52 @@
   gap: 30px;
   padding: 40px;
   color: #3b2314;
-  overflow: hidden;
+  overflow-y: auto;
   position: relative;
+}
+
+.menu-close-x-btn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: #8b5a2b;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+.menu-close-x-btn:hover {
+  color: #d63351;
+  transform: scale(1.2) rotate(90deg);
+  text-shadow: 0 0 10px rgba(255, 51, 85, 0.6);
+}
+
+.adventure-primary-btn {
+  border: 2.5px solid #b8860b !important;
+  box-shadow: 0 0 12px rgba(184, 134, 11, 0.2) !important;
+  background: rgba(255, 248, 220, 0.45) !important;
+}
+.adventure-primary-btn i {
+  color: #b8860b !important;
+}
+.adventure-primary-btn .action-title {
+  color: #8a5a00 !important;
+}
+.adventure-primary-btn:hover {
+  border-color: #ffd700 !important;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.35) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  transform: translateX(6px) translateY(-2px);
+}
+.adventure-primary-btn:hover i {
+  color: #ffd700 !important;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
 }
 
 .start-left-hero {
@@ -815,4 +850,215 @@
 
 .hidden {
   display: none !important;
+}
+
+/* ============================================================================
+   6. HIGH-FIDELITY SPLASH SCREEN & LOGO REDESIGN
+   ============================================================================ */
+#splash-screen {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.95) 100%), 
+              url('assets/graph_quest_bg.png') no-repeat center center fixed;
+  background-size: cover;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.splash-logo-wreath-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 40px 60px;
+}
+
+/* Ivy Branch Details */
+.ivy-branch {
+  position: absolute;
+  font-size: 5rem;
+  color: #38a169; /* Forest green */
+  filter: drop-shadow(0 0 10px rgba(56, 161, 105, 0.5));
+  opacity: 0.85;
+  transition: transform 0.3s;
+}
+.ivy-branch.left {
+  left: -20px;
+  top: 15px;
+  transform: rotate(-45deg) scaleX(-1);
+}
+.ivy-branch.right {
+  right: -20px;
+  top: 15px;
+  transform: rotate(45deg);
+}
+
+.splash-logo-wreath-wrap:hover .ivy-branch.left {
+  transform: rotate(-35deg) scaleX(-1) scale(1.1);
+}
+.splash-logo-wreath-wrap:hover .ivy-branch.right {
+  transform: rotate(35deg) scale(1.1);
+}
+
+.splash-logo-title {
+  font-family: 'Cinzel', serif;
+  font-size: 4.8rem;
+  font-weight: 900;
+  line-height: 0.95;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.85));
+  margin: 0;
+  z-index: 2;
+  letter-spacing: 2px;
+}
+
+/* Medieval Ribbon/Banner Style */
+.splash-logo-banner {
+  background: linear-gradient(90deg, #8c2510, #d9381e, #8c2510);
+  border: 2.5px solid #ffd700;
+  border-radius: 4px;
+  color: #ffd700;
+  padding: 8px 30px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6), inset 0 0 8px rgba(255,215,0,0.3);
+  transform: translateY(-8px) rotate(-1.5deg);
+  z-index: 3;
+  text-align: center;
+}
+
+.splash-start-btn {
+  font-size: 1.25rem !important;
+  padding: 12px 36px !important;
+  border-width: 3px !important;
+  background: linear-gradient(180deg, #8b5a2b, #4a2e1b) !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.45), inset 0 0 10px rgba(255,255,255,0.15) !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+}
+
+.splash-press-enter {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  letter-spacing: 1.5px;
+  animation: pulse-glow 1.5s infinite alternate;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  opacity: 0.85;
+}
+
+/* ============================================================================
+   7. CHOOSE YOUR ADVENTURE OVERLAY AND CARD STYLING
+   ============================================================================ */
+.adventure-title-plate {
+  display: inline-block;
+  background: linear-gradient(90deg, #3d2212, #6b3e1a, #3d2212);
+  border: 3px solid #8b5a2b;
+  border-radius: 4px;
+  color: #ffd700;
+  padding: 8px 36px;
+  font-size: 1.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(255,215,0,0.25);
+  margin-bottom: 10px;
+}
+
+.adventure-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .adventure-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .adventure-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adventure-card {
+  cursor: pointer;
+  perspective: 1000px;
+}
+
+.adventure-card-inner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.55; /* 3:2 ratio */
+  background: #000;
+  border: 3px solid #5c3c1e;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.adventure-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.65;
+  transition: all 0.35s ease;
+}
+
+.adventure-node-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.adventure-card-nameplate {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #3d2212, #24140a);
+  border: 2px solid #8b5a2b;
+  border-radius: 4px;
+  color: #f7e7c4;
+  padding: 4px 18px;
+  font-size: 0.82rem;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  z-index: 5;
+  transition: all 0.3s ease;
+}
+
+/* Hover effects */
+.adventure-card:hover .adventure-card-inner {
+  transform: translateY(-6px) scale(1.03);
+  border-color: #ffd700;
+  box-shadow: 0 12px 30px rgba(255, 215, 0, 0.3);
+}
+
+.adventure-card:hover .adventure-card-img {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.adventure-card:hover .adventure-card-nameplate {
+  color: #ffd700;
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
 }

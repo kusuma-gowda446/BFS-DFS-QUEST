@@ -32,17 +32,9 @@ const LEVELS = [
 class AIGuideController {
   constructor() {
     this.textEl = $('guide-dialogue');
-    this.hintEl = $('guide-hint-text');
   }
   say(text) {
     this.textEl.innerHTML = text;
-  }
-  showClue(text) {
-    this.hintEl.innerHTML = text;
-    this.hintEl.classList.remove('hidden');
-  }
-  hideClue() {
-    this.hintEl.classList.add('hidden');
   }
 }
 
@@ -60,6 +52,9 @@ class GameController {
     this.currentLevelIndex = 0;
     this.xp = 0;
     this.timeLeft = 155; // 02:35 equivalent
+    this.shieldActive = false;
+    this.customSceneryActive = false;
+    this.sceneryToggleIdx = 0;
     
     this.ai = new AIGuideController();
     this.renderer = new GameRenderer(this);
@@ -72,10 +67,54 @@ class GameController {
   }
   
   _bindEvents() {
+    // Splash Screen fade out logic
+    const fadeSplash = () => {
+      const splash = $('splash-screen');
+      if (splash && !splash.classList.contains('hidden')) {
+        gsap.to(splash, {
+          opacity: 0,
+          scale: 1.1,
+          duration: 0.8,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            splash.classList.add('hidden');
+          }
+        });
+      }
+    };
+
+    $('btn-start-game').onclick = fadeSplash;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        fadeSplash();
+      }
+    });
+
     // Start Menu bindings
+    $('btn-mode-adventure').onclick = () => {
+      $('adventure-overlay').classList.remove('hidden');
+    };
+    $('btn-adventure-close').onclick = () => {
+      $('adventure-overlay').classList.add('hidden');
+    };
+    
+    // Grid cards click bindings
+    const adventureCards = document.querySelectorAll('.adventure-card');
+    adventureCards.forEach(card => {
+      card.onclick = () => {
+        const type = card.getAttribute('data-adventure');
+        this.startAdventure(type);
+      };
+    });
+
     $('btn-mode-story').onclick = () => this.startStoryMode();
     $('btn-mode-challenge').onclick = () => this.startChallengeMode();
     $('btn-mode-compare').onclick = () => this.startCompareRealms();
+    
+    // Close Start Menu overlay
+    $('btn-menu-close').onclick = () => {
+      $('start-menu').classList.add('hidden');
+    };
     
     $('btn-compare-close').onclick = () => {
       $('compare-overlay').classList.add('hidden');
@@ -133,25 +172,41 @@ class GameController {
       $('btn-sim-pause').classList.add('hidden');
     };
 
-    $('btn-mode-custom').onclick = () => {
-      $('menu-main-view').classList.add('hidden');
-      $('menu-custom-view').classList.remove('hidden');
-    };
-    $('btn-back-main').onclick = () => {
-      $('menu-main-view').classList.remove('hidden');
-      $('menu-custom-view').classList.add('hidden');
-    };
-    $('btn-generate-custom').onclick = () => this.generateCustomGraph();
+
     
     // Left Sidebar bindings
     $('sidebar-btn-bfs').onclick = () => {
       if (this.mode === 'BFS') return;
       this.mode = 'BFS';
+      
+      // Auto-toggle scenery if no custom scenery is manually selected/pinned
+      if (!this.customSceneryActive) {
+        const sceneries = [
+          "assets/graph_quest_bg.png",
+          "assets/forest_bg.png",
+          "assets/caverns_bg.png"
+        ];
+        this.sceneryToggleIdx = (this.sceneryToggleIdx + 1) % sceneries.length;
+        this.level.bg = sceneries[this.sceneryToggleIdx];
+      }
+      
       this.loadLevel({...this.level, mode: 'BFS'});
     };
     $('sidebar-btn-dfs').onclick = () => {
       if (this.mode === 'DFS') return;
       this.mode = 'DFS';
+      
+      // Auto-toggle scenery if no custom scenery is manually selected/pinned
+      if (!this.customSceneryActive) {
+        const sceneries = [
+          "assets/temple_bg.png",
+          "assets/desert_bg.png",
+          "assets/frost_bg.png"
+        ];
+        this.sceneryToggleIdx = (this.sceneryToggleIdx + 1) % sceneries.length;
+        this.level.bg = sceneries[this.sceneryToggleIdx];
+      }
+      
       this.loadLevel({...this.level, mode: 'DFS'});
     };
     
@@ -169,28 +224,15 @@ class GameController {
           this.currentLevelIndex = 1;
           this.loadLevel(LEVELS[1]);
         } else if (diff === 'hard') {
-          // Centered normalized coordinates mimicking the reference mockup
+          const randomGraph = this.generateRandomPracticeGraph();
           const hardLevel = {
             id: 3,
             name: "The Waterfall Path",
             region: "VALLEY",
             mode: this.mode,
             startNode: "A",
-            nodes: {
-              "A": { x: 0.5, y: 0.1 },
-              "B": { x: 0.3, y: 0.3 },
-              "C": { x: 0.7, y: 0.3 },
-              "D": { x: 0.9, y: 0.45 },
-              "E": { x: 0.1, y: 0.65 },
-              "F": { x: 0.35, y: 0.65 },
-              "G": { x: 0.6, y: 0.65 },
-              "H": { x: 0.85, y: 0.65 },
-              "I": { x: 0.5, y: 0.9 }
-            },
-            edges: [
-              ["A", "B"], ["A", "C"], ["B", "E"], ["B", "F"],
-              ["C", "G"], ["C", "D"], ["D", "H"], ["F", "I"], ["G", "I"]
-            ]
+            nodes: randomGraph.nodes,
+            edges: randomGraph.edges
           };
           this.currentLevelIndex = 2;
           this.loadLevel(hardLevel);
@@ -199,22 +241,23 @@ class GameController {
     });
 
     // Sound Controls
-    $('btn-sound').onclick = () => {
-      const icon = $('btn-sound').querySelector('i');
-      if (icon.classList.contains('fa-volume-high')) {
-        icon.className = 'fa-solid fa-volume-xmark';
-      } else {
-        icon.className = 'fa-solid fa-volume-high';
-      }
-    };
-    
-    // Help Panel Trigger
-    $('btn-help').onclick = () => {
-      this.ai.say(`💡 <b>Graph Quest Help:</b> Choose a traversal mode on the left. Analyze the world graph, and choose the correct next node by clicking the bottom circles or clicking the nodes directly in the canvas!`);
-    };
+
 
     // HUD Menu
     $('btn-hud-menu').onclick = () => $('start-menu').classList.remove('hidden');
+    $('btn-hud-exit').onclick = () => {
+      $('start-menu').classList.add('hidden');
+      $('victory-overlay').classList.add('hidden');
+      if ($('adventure-overlay')) $('adventure-overlay').classList.add('hidden');
+      if ($('compare-overlay')) $('compare-overlay').classList.add('hidden');
+      if ($('incorrect-overlay')) $('incorrect-overlay').classList.add('hidden');
+      
+      const splash = $('splash-screen');
+      if (splash) {
+        gsap.set(splash, { opacity: 1, scale: 1 });
+        splash.classList.remove('hidden');
+      }
+    };
 
     // Progression & Navigation handlers for Victory Overlay
     $('btn-victory-next').onclick = () => {
@@ -241,10 +284,19 @@ class GameController {
 
     // Power-up triggers
     $('powerup-hint').onclick = () => {
+      if (this.hintsCount <= 0) {
+        this.ai.say(`🔮 <b>No hints remaining!</b> You must decipher the path on your own, Pathfinder!`);
+        return;
+      }
+      
       const correctNode = this.expectedOrder[this.visited.length];
       if (correctNode) {
-        this.ai.say(`🔮 <b>Power-Up: Hint Active!</b> Aria reveals the next correct traversal path leads to Node <b>${correctNode}</b>.`);
-        this.renderer.playCorrectVFX(correctNode);
+        this.hintsCount--;
+        const hintCountEl = document.querySelector('#powerup-hint .p-count');
+        if (hintCountEl) hintCountEl.innerText = this.hintsCount;
+
+        const nextClue = this.stepClues[this.visited.length] || '';
+        this.ai.say(`🔮 <b>Power-Up: Hint Active!</b> Aria reveals the next correct traversal path leads to Node <b>${correctNode}</b>.<br><br>${nextClue}`);
       }
     };
 
@@ -254,7 +306,6 @@ class GameController {
         this.ai.say(`⏳ <b>Power-Up: Rewind Active!</b> Undoing last step. Node <b>${popped}</b> has been returned to the ether.`);
         this.setupSlots();
         this.updateAlgoVisuals();
-        this.updateClue();
         this.updateChoiceButtons();
         
         const prev = this.visited.length > 0 ? this.visited[this.visited.length - 1] : this.level.startNode;
@@ -263,11 +314,82 @@ class GameController {
     };
 
     $('powerup-shield').onclick = () => {
+      if (this.shieldsCount <= 0) {
+        this.ai.say(`🛡️ <b>No shields remaining!</b> Explore carefully!`);
+        return;
+      }
+      if (this.shieldActive) {
+        this.ai.say(`🛡️ <b>Shield is already active!</b> You are protected from the next mistake.`);
+        return;
+      }
+      this.shieldActive = true;
+      this.shieldsCount--;
+      const shieldCountEl = document.querySelector('#powerup-shield .p-count');
+      if (shieldCountEl) shieldCountEl.innerText = this.shieldsCount;
       this.ai.say(`🛡️ <b>Power-Up: Shield Active!</b> Protected against your next incorrect move!`);
+    };
+
+    $('btn-incorrect-retry').onclick = () => {
+      $('incorrect-overlay').classList.add('hidden');
     };
   }
 
+  startAdventure(type) {
+    this.customSceneryActive = true;
+    $('adventure-overlay').classList.add('hidden');
+    $('start-menu').classList.add('hidden');
+    $('victory-overlay').classList.add('hidden');
+    
+    // Enable powerup buttons
+    $('powerup-hint').style.display = 'flex';
+    $('powerup-shield').style.display = 'flex';
+    this.isChallengeMode = false;
+    
+    const randomGraph = this.generateRandomPracticeGraph();
+
+    let levelName = "The Waterfall Path";
+    let bgUrl = "assets/graph_quest_bg.png";
+    let region = "VALLEY";
+    
+    if (type === 'temple') {
+      levelName = "Ancient Temple";
+      bgUrl = "assets/temple_bg.png";
+      region = "RUINS";
+    } else if (type === 'rainforest') {
+      levelName = "Rainforest Trail";
+      bgUrl = "assets/forest_bg.png";
+      region = "FOREST";
+    } else if (type === 'desert') {
+      levelName = "Desert Ruins";
+      bgUrl = "assets/desert_bg.png";
+      region = "VALLEY";
+    } else if (type === 'crystal') {
+      levelName = "Crystal Caves";
+      bgUrl = "assets/caverns_bg.png";
+      region = "CAVERNS";
+    } else if (type === 'frost') {
+      levelName = "Frost Peaks";
+      bgUrl = "assets/frost_bg.png";
+      region = "SKYLANDS";
+    }
+    
+    const adventureLevel = {
+      id: "Adventure",
+      name: levelName,
+      region: region,
+      mode: this.mode,
+      startNode: "A",
+      nodes: randomGraph.nodes,
+      edges: randomGraph.edges,
+      bg: bgUrl
+    };
+    
+    this.currentLevelIndex = 999;
+    this.loadLevel(adventureLevel);
+  }
+
   startStoryMode() {
+    this.customSceneryActive = false;
     $('start-menu').classList.add('hidden');
     $('victory-overlay').classList.add('hidden');
     
@@ -286,6 +408,7 @@ class GameController {
   }
 
   startChallengeMode() {
+    this.customSceneryActive = false;
     $('start-menu').classList.add('hidden');
     $('victory-overlay').classList.add('hidden');
     
@@ -554,46 +677,41 @@ class GameController {
     });
   }
 
-  generateCustomGraph() {
-    const nodesStr = $('custom-nodes-input').value;
-    const edgesStr = $('custom-edges-input').value;
-    const startNode = $('custom-start-input').value.trim();
-    const mode = $('custom-algo-select').value;
-    
-    const nodeNames = nodesStr.split(',').map(n => n.trim()).filter(n => n);
-    const edgesRaw = edgesStr.split(',').map(e => e.trim()).filter(e => e);
-    const edges = edgesRaw.map(e => e.split('-').map(n=>n.trim()));
-    
-    // Centered normalized radial positions
-    const nodesObj = {};
-    nodeNames.forEach((name, i) => {
-      if(name === startNode) {
-        nodesObj[name] = { x: 0.5, y: 0.5 };
-      } else {
-        const angle = (i / (nodeNames.length - 1 || 1)) * Math.PI * 2;
-        nodesObj[name] = { 
-          x: 0.5 + Math.cos(angle) * 0.35, 
-          y: 0.5 + Math.sin(angle) * 0.35 
-        };
-      }
-    });
 
-    const level = {
-      name: "Custom Realm",
-      region: "RUINS",
-      mode: mode,
-      startNode: startNode,
-      nodes: nodesObj,
-      edges: edges
-    };
-    
-    $('start-menu').classList.add('hidden');
-    this.loadLevel(level);
-  }
 
   loadLevel(levelData) {
-    this.level = levelData;
-    this.mode = levelData.mode;
+    // Generate different random graphs each and every time a level is loaded
+    const randomGraph = this.generateRandomPracticeGraph();
+    this.level = {
+      ...levelData,
+      nodes: randomGraph.nodes,
+      edges: randomGraph.edges
+    };
+    this.mode = this.level.mode;
+    
+    // Auto background cycling if no custom manually-selected scenery is active
+    if (!this.customSceneryActive) {
+      const sceneries = [
+        "assets/graph_quest_bg.png",
+        "assets/temple_bg.png",
+        "assets/forest_bg.png",
+        "assets/desert_bg.png",
+        "assets/caverns_bg.png",
+        "assets/frost_bg.png"
+      ];
+      // Cycle backgrounds automatically based on level ID (if number) or fallback
+      let idx = 0;
+      if (typeof levelData.id === 'number') {
+        idx = (levelData.id - 1) % sceneries.length;
+      } else {
+        idx = this.mode === 'BFS' ? 0 : 1;
+      }
+      levelData.bg = sceneries[idx];
+    }
+
+    let bgUrl = levelData.bg || (this.mode === 'BFS' ? 'assets/graph_quest_bg.png' : 'assets/temple_bg.png');
+    document.body.style.background = `radial-gradient(circle, rgba(0, 0, 0, 0.05) 30%, rgba(0, 0, 0, 0.45) 100%), url('${bgUrl}') no-repeat center center fixed`;
+    document.body.style.backgroundSize = 'cover';
     
     if (this.mode === 'BFS') {
       $('sidebar-btn-bfs').classList.add('active');
@@ -626,20 +744,20 @@ class GameController {
     this.stepClues = traversal.clues;
     this.visited = [];
     
+    // Reset power-up quantities for the new traversal level
+    this.hintsCount = 2;
+    this.shieldsCount = 1;
+    this.shieldActive = false;
+
+    const hintCountEl = document.querySelector('#powerup-hint .p-count');
+    if (hintCountEl) hintCountEl.innerText = this.hintsCount;
+    const shieldCountEl = document.querySelector('#powerup-shield .p-count');
+    if (shieldCountEl) shieldCountEl.innerText = this.shieldsCount;
+
     this.setupSlots();
     this.renderer.setLevel(this.level);
     this.updateAlgoVisuals();
-    this.updateClue();
     this.updateChoiceButtons();
-  }
-
-  updateClue() {
-    const idx = this.visited.length;
-    if (idx < this.stepClues.length) {
-      this.ai.showClue(this.stepClues[idx]);
-    } else {
-      this.ai.hideClue();
-    }
   }
 
   computeTraversalWithClues(start, mode) {
@@ -743,19 +861,30 @@ class GameController {
       
       if(this.visited.length === this.expectedOrder.length) {
         this.ai.say(`🎉 <b>Excellent job, Pathfinder!</b> You have successfully restored the ancient energy paths of this realm!`);
-        this.ai.hideClue();
         setTimeout(() => this.showVictory(), 1500);
       } else {
-        this.updateClue();
         this.updateChoiceButtons();
       }
       return true;
     } else {
+      if (this.shieldActive) {
+        this.shieldActive = false;
+        this.ai.say(`🛡️ <b>Shield Absorbed!</b> Your shield protected you from the incorrect path to Node <b>${nodeId}</b>.`);
+        return false;
+      }
+
       document.body.classList.add('screen-shake');
       setTimeout(() => document.body.classList.remove('screen-shake'), 500);
       
       const currentClue = this.stepClues[this.visited.length];
-      this.ai.showClue(`❌ <b>Not quite!</b> ${currentClue}`);
+      
+      // Update explanation in popup
+      $('incorrect-explanation-text').innerHTML = `<b>Designated Node ${nodeId} is incorrect!</b><br><br>${currentClue}`;
+      
+      // Show the popup overlay
+      $('incorrect-overlay').classList.remove('hidden');
+      
+      this.ai.say(`❌ <b>Not quite!</b> ${currentClue}`);
       return false;
     }
   }
@@ -879,15 +1008,102 @@ class GameController {
     $('victory-overlay').classList.remove('hidden');
     
     if (this.isChallengeMode) {
-      $('victory-xp').innerText = '+1000 XP';
       $('victory-stars').innerText = '⭐⭐⭐⭐⭐';
     } else {
-      $('victory-xp').innerText = '+500 XP';
       $('victory-stars').innerText = '⭐⭐⭐';
     }
     
     $('victory-summary').className = `concept-summary ${this.mode.toLowerCase()}-concept`;
     $('victory-summary').innerHTML = `<strong>What you learned:</strong> ${this.mode === 'BFS' ? 'BFS explores layer by layer, guaranteeing the shortest path in unweighted graphs!' : 'DFS dives as deeply as possible, making it great for finding paths through mazes and topological sorting!'}`;
+    
+    // Draw finalized traversed graph on overlay canvas
+    this.renderer.drawVictoryGraph('victory-canvas');
+  }
+
+  generateRandomPracticeGraph() {
+    const nodesList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    
+    // Choose one of 3 beautiful visual layout presets
+    const layouts = [
+      // 1. Layered Tree
+      {
+        "A": { x: 0.5, y: 0.12 },
+        "B": { x: 0.28, y: 0.32 },
+        "C": { x: 0.72, y: 0.32 },
+        "D": { x: 0.12, y: 0.58 },
+        "E": { x: 0.38, y: 0.58 },
+        "F": { x: 0.62, y: 0.58 },
+        "G": { x: 0.88, y: 0.58 },
+        "H": { x: 0.35, y: 0.86 },
+        "I": { x: 0.65, y: 0.86 }
+      },
+      // 2. Circular Outer-Ring
+      {
+        "A": { x: 0.5, y: 0.12 },
+        "B": { x: 0.22, y: 0.3 },
+        "C": { x: 0.78, y: 0.3 },
+        "D": { x: 0.1, y: 0.55 },
+        "E": { x: 0.9, y: 0.55 },
+        "F": { x: 0.22, y: 0.8 },
+        "G": { x: 0.78, y: 0.8 },
+        "H": { x: 0.5, y: 0.92 },
+        "I": { x: 0.5, y: 0.55 }
+      },
+      // 3. Horizontal Wave Grid
+      {
+        "A": { x: 0.12, y: 0.5 },
+        "B": { x: 0.35, y: 0.25 },
+        "C": { x: 0.35, y: 0.75 },
+        "D": { x: 0.58, y: 0.15 },
+        "E": { x: 0.58, y: 0.5 },
+        "F": { x: 0.58, y: 0.85 },
+        "G": { x: 0.8, y: 0.3 },
+        "H": { x: 0.8, y: 0.7 },
+        "I": { x: 0.92, y: 0.5 }
+      }
+    ];
+    
+    const selectedLayout = layouts[Math.floor(Math.random() * layouts.length)];
+    
+    // Generate a Spanning Tree to guarantee 100% connectivity
+    const connected = ['A'];
+    const unconnected = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    const edges = [];
+    
+    // Helper to check if edge already exists
+    const edgeExists = (u, v) => {
+      return edges.some(([x, y]) => (x === u && y === v) || (x === v && y === u));
+    };
+    
+    while (unconnected.length > 0) {
+      // Pick a random connected node
+      const u = connected[Math.floor(Math.random() * connected.length)];
+      // Pick a random unconnected node
+      const vIdx = Math.floor(Math.random() * unconnected.length);
+      const v = unconnected[vIdx];
+      
+      edges.push([u, v]);
+      connected.push(v);
+      unconnected.splice(vIdx, 1);
+    }
+    
+    // Add 3-4 extra random edges to create cycle complexity for BFS/DFS traversal
+    const extraEdgesCount = 3 + Math.floor(Math.random() * 2); // 3 or 4 extra edges
+    let attempts = 0;
+    while (edges.length < 8 + extraEdgesCount && attempts < 50) {
+      attempts++;
+      const u = nodesList[Math.floor(Math.random() * nodesList.length)];
+      const v = nodesList[Math.floor(Math.random() * nodesList.length)];
+      
+      if (u !== v && !edgeExists(u, v)) {
+        edges.push([u, v]);
+      }
+    }
+    
+    return {
+      nodes: selectedLayout,
+      edges: edges
+    };
   }
 }
 
@@ -1086,6 +1302,123 @@ class GameRenderer {
     this.ctx.fillText('YOU', this.playerX, this.playerY - 33);
   }
 
+  drawVictoryGraph(canvasId) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const activeColor = this.ctrl.mode === 'BFS' ? '#00d2ff' : '#ff9d00';
+    
+    // Map normalized coordinates from this.nodes
+    const getCoords = (x, y) => {
+      const paddingX = canvas.width * 0.12; 
+      const paddingY = canvas.height * 0.12; 
+      const w = canvas.width - paddingX * 2;
+      const h = canvas.height - paddingY * 2;
+      return {
+        x: paddingX + x * w,
+        y: paddingY + y * h
+      };
+    };
+
+    // 1. Draw Sequential Traversed Edges with Directional Arrow Marks
+    for (let i = 0; i < this.ctrl.visited.length - 1; i++) {
+      const u = this.ctrl.visited[i];
+      const v = this.ctrl.visited[i + 1];
+      const n1 = this.nodes[u];
+      const n2 = this.nodes[v];
+      if (!n1 || !n2) continue;
+      
+      const c1 = getCoords(n1.x, n1.y);
+      const c2 = getCoords(n2.x, n2.y);
+      
+      // Thick Glowing Traversed Line
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.moveTo(c1.x, c1.y);
+      ctx.lineTo(c2.x, c2.y);
+      ctx.stroke();
+
+      // Traversal Direction Arrow Head at Midpoint
+      const midX = c1.x + (c2.x - c1.x) * 0.55; 
+      const midY = c1.y + (c2.y - c1.y) * 0.55;
+      const angle = Math.atan2(c2.y - c1.y, c2.x - c1.x);
+      const arrowSize = 8;
+
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(midX, midY);
+      ctx.lineTo(midX - arrowSize * Math.cos(angle - Math.PI / 6), midY - arrowSize * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(midX, midY);
+      ctx.lineTo(midX - arrowSize * Math.cos(angle + Math.PI / 6), midY - arrowSize * Math.sin(angle + Math.PI / 6));
+      ctx.stroke();
+    }
+
+    // 2. Draw Faint Untraversed Edges for Graph Context
+    this.edges.forEach(([u, v]) => {
+      const n1 = this.nodes[u];
+      const n2 = this.nodes[v];
+      if (!n1 || !n2) return;
+      
+      const c1 = getCoords(n1.x, n1.y);
+      const c2 = getCoords(n2.x, n2.y);
+      
+      // Check if this edge was drawn sequentially above
+      let isSequential = false;
+      for (let i = 0; i < this.ctrl.visited.length - 1; i++) {
+        if ((this.ctrl.visited[i] === u && this.ctrl.visited[i + 1] === v) || 
+            (this.ctrl.visited[i] === v && this.ctrl.visited[i + 1] === u)) {
+          isSequential = true;
+          break;
+        }
+      }
+      
+      if (!isSequential) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(c1.x, c1.y);
+        ctx.lineTo(c2.x, c2.y);
+        ctx.stroke();
+      }
+    });
+
+    // Draw Nodes
+    Object.entries(this.nodes).forEach(([id, n]) => {
+      const coords = getCoords(n.x, n.y);
+      const isVisited = this.ctrl.visited.includes(id);
+      
+      ctx.beginPath();
+      ctx.arc(coords.x, coords.y, 16, 0, Math.PI * 2);
+      
+      if (isVisited) {
+        ctx.fillStyle = activeColor;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+      } else {
+        ctx.fillStyle = '#10151e';
+        ctx.strokeStyle = '#4a5568';
+        ctx.lineWidth = 1.5;
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Node Label
+      ctx.fillStyle = isVisited ? '#000000' : '#a0aec0';
+      ctx.font = "bold 11px Cinzel";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(id, coords.x, coords.y);
+    });
+  }
+
   render() {
     this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     
@@ -1150,66 +1483,114 @@ class GameRenderer {
       } else {
         // High-Contrast Dark Backing Path (Guarantees visibility over bright image details)
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)'; 
-        this.ctx.lineWidth = 9;
+        this.ctx.lineWidth = 8;
         this.ctx.beginPath();
         this.ctx.moveTo(c1.x, c1.y);
         this.ctx.lineTo(c2.x, c2.y);
         this.ctx.stroke();
 
-        // Thick, Highly Visible Golden Dashed Pathway
-        this.ctx.strokeStyle = 'rgba(255, 223, 75, 0.9)'; 
-        this.ctx.lineWidth = 5;
-        this.ctx.setLineDash([8, 8]); 
+        // Thick, Highly Visible Solid White Pathway (Matches the clean solid paths in reference)
+        this.ctx.strokeStyle = '#f7fafc'; 
+        this.ctx.lineWidth = 4.5;
         this.ctx.beginPath();
         this.ctx.moveTo(c1.x, c1.y);
         this.ctx.lineTo(c2.x, c2.y);
         this.ctx.stroke();
-        this.ctx.setLineDash([]); 
       }
     });
 
-    // Draw graph nodes
+    // Each node gets its own unique vibrant color identity
+    const NODE_PALETTES = {
+      'A': { light: '#ff3b30', mid: '#b91c1c', dark: '#1e0505', ring: '#ff3355', shadow: 'rgba(255, 30, 50, 0.95)'   }, // Vivid Red
+      'B': { light: '#818cf8', mid: '#4338ca', dark: '#1e1b4b', ring: '#6366f1', shadow: 'rgba(99, 102, 241, 0.95)'  }, // Electric Indigo
+      'C': { light: '#34d399', mid: '#059669', dark: '#064e3b', ring: '#10b981', shadow: 'rgba(16, 185, 129, 0.95)'  }, // Neon Emerald
+      'D': { light: '#fbbf24', mid: '#d97706', dark: '#1c1400', ring: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.95)'  }, // Solar Amber
+      'E': { light: '#f472b6', mid: '#be185d', dark: '#1e0215', ring: '#ec4899', shadow: 'rgba(236, 72, 153, 0.95)'  }, // Neon Pink
+      'F': { light: '#38bdf8', mid: '#0284c7', dark: '#082038', ring: '#0ea5e9', shadow: 'rgba(14, 165, 233, 0.95)'  }, // Sky Cyan
+      'G': { light: '#fb923c', mid: '#c2410c', dark: '#1c0a00', ring: '#f97316', shadow: 'rgba(249, 115, 22, 0.95)'  }, // Blaze Orange
+      'H': { light: '#a78bfa', mid: '#7c3aed', dark: '#1e0f40', ring: '#8b5cf6', shadow: 'rgba(139, 92, 246, 0.95)'  }, // Vivid Violet
+      'I': { light: '#2dd4bf', mid: '#0f766e', dark: '#042e2a', ring: '#14b8a6', shadow: 'rgba(20, 184, 166, 0.95)'  }, // Aqua Teal
+    };
+    
+    // Fallback palette for any node id not in A-I
+    const FALLBACK_PALETTE = { light: '#94a3b8', mid: '#475569', dark: '#0f172a', ring: '#64748b', shadow: 'rgba(100,116,139,0.7)' };
+
+    // Draw graph nodes (Gorgeous Segmented Metallic / Stone Sockets with per-node unique colors)
     for(let id in this.nodes) {
       const n = this.nodes[id];
       const coords = this.getCanvasCoords(n.x, n.y);
       const isVisited = this.ctrl.visited.includes(id);
       const isCurrent = this.ctrl.visited[this.ctrl.visited.length - 1] === id;
-      const isNextHint = id === this.ctrl.expectedOrder[this.ctrl.visited.length];
+      const isActive = isVisited || isCurrent;
       
-      if(isNextHint) {
-        this.ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
-        this.ctx.shadowBlur = 18;
+      this.ctx.save();
+      
+      const palette = NODE_PALETTES[id] || FALLBACK_PALETTE;
+      
+      let ringColor, radialGrad;
+      
+      if (isActive) {
+        // Fully lit up with unique per-node neon glow
+        ringColor = palette.ring;
+        this.ctx.shadowColor = palette.shadow;
+        this.ctx.shadowBlur = 26;
+        
+        radialGrad = this.ctx.createRadialGradient(coords.x, coords.y, 2, coords.x, coords.y, 24);
+        radialGrad.addColorStop(0, palette.light);
+        radialGrad.addColorStop(0.5, palette.mid);
+        radialGrad.addColorStop(1, palette.dark);
       } else {
+        // Unvisited: muted dark socket showing a hint of the unique ring color
+        ringColor = palette.ring + '66'; // 40% opacity hint of the node's color
         this.ctx.shadowBlur = 0;
+        
+        radialGrad = this.ctx.createRadialGradient(coords.x, coords.y, 2, coords.x, coords.y, 24);
+        radialGrad.addColorStop(0, palette.dark);
+        radialGrad.addColorStop(1, '#0a0c12');
       }
 
-      if (id === this.level.startNode) {
-        this.ctx.fillStyle = '#1e0505';
-        this.ctx.strokeStyle = '#ff3355';
-      } else if (isCurrent) {
-        this.ctx.fillStyle = '#051e10';
-        this.ctx.strokeStyle = '#00ff88';
-      } else if (isVisited) {
-        this.ctx.fillStyle = '#051325';
-        this.ctx.strokeStyle = '#00d2ff';
-      } else {
-        this.ctx.fillStyle = '#10151e';
-        this.ctx.strokeStyle = '#718096';
-      }
-
-      this.ctx.lineWidth = 3.5;
+      // 1. Draw circular background fill
       this.ctx.beginPath();
-      this.ctx.arc(coords.x, coords.y, 25, 0, Math.PI*2);
+      this.ctx.arc(coords.x, coords.y, 24, 0, Math.PI*2);
+      this.ctx.fillStyle = radialGrad;
       this.ctx.fill();
+
+      // 2. Draw thick outer ring (unique per-node color, glowing when active)
+      this.ctx.strokeStyle = isActive ? palette.ring : palette.ring + '66';
+      this.ctx.lineWidth = 4;
+      this.ctx.beginPath();
+      this.ctx.arc(coords.x, coords.y, 24, 0, Math.PI*2);
       this.ctx.stroke();
+      if (isActive) {
+        this.ctx.stroke(); // Double stroke for extremely vibrant neon halo!
+      }
+
+      // 3. Draw inner concentric ring
+      this.ctx.strokeStyle = isActive ? palette.light + 'cc' : '#2d3748';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.beginPath();
+      this.ctx.arc(coords.x, coords.y, 19, 0, Math.PI*2);
+      this.ctx.stroke();
+
+      // 4. Draw 8 radial gear notches
+      this.ctx.strokeStyle = isActive ? palette.ring : palette.ring + '55';
+      this.ctx.lineWidth = 1.8;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(coords.x + Math.cos(a) * 19, coords.y + Math.sin(a) * 19);
+        this.ctx.lineTo(coords.x + Math.cos(a) * 24, coords.y + Math.sin(a) * 24);
+        this.ctx.stroke();
+      }
       
+      // 5. Draw centered node letter label
       this.ctx.shadowBlur = 0;
-      
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = 'bold 18px Cinzel';
+      this.ctx.fillStyle = isActive ? '#ffffff' : '#94a3b8';
+      this.ctx.font = 'bold 18px Cinzel, serif';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
       this.ctx.fillText(id, coords.x, coords.y);
+      
+      this.ctx.restore();
     }
 
     // Update and draw player avatar positions
@@ -1233,6 +1614,53 @@ class GameRenderer {
     }
 
     this.drawPlayerAvatar();
+    this.drawLegend();
+  }
+
+  // Draw a horizontal, clean, highly-legible canvas legend matching the reference image
+  drawLegend() {
+    const items = [
+      { label: "Start Node", fill: "#1e0505", border: "#ff3355", glow: "rgba(255, 51, 85, 0.7)" },
+      { label: "Visited", fill: "#003c73", border: "#00e5ff", glow: "rgba(0, 210, 255, 0.6)" },
+      { label: "Current", fill: "#003d1c", border: "#00ff88", glow: "rgba(0, 255, 136, 0.6)" },
+      { label: "Unvisited", fill: "#121620", border: "#4e535c", glow: null }
+    ];
+    
+    const centerY = this.canvas.height - 25;
+    const itemWidth = 110;
+    const totalWidth = items.length * itemWidth;
+    let startX = (this.canvas.width - totalWidth) / 2 + 10;
+    
+    this.ctx.save();
+    items.forEach((item, i) => {
+      const cx = startX + i * itemWidth;
+      
+      // 1. Draw glowing color circle indicator
+      this.ctx.beginPath();
+      this.ctx.arc(cx, centerY, 6, 0, Math.PI * 2);
+      
+      if (item.glow) {
+        this.ctx.shadowColor = item.glow;
+        this.ctx.shadowBlur = 10;
+      } else {
+        this.ctx.shadowBlur = 0;
+      }
+      
+      this.ctx.fillStyle = item.fill;
+      this.ctx.strokeStyle = item.border;
+      this.ctx.lineWidth = 2;
+      this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.shadowBlur = 0;
+      
+      // 2. Draw text label
+      this.ctx.fillStyle = i === 3 ? '#cbd5e0' : '#ffffff';
+      this.ctx.font = "bold 11px Cinzel, serif";
+      this.ctx.textAlign = 'left';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(item.label, cx + 12, centerY);
+    });
+    this.ctx.restore();
   }
 }
 
