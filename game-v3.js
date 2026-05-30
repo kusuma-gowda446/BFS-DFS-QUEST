@@ -861,7 +861,8 @@ class GameController {
       
       if(this.visited.length === this.expectedOrder.length) {
         this.ai.say(`🎉 <b>Excellent job, Pathfinder!</b> You have successfully restored the ancient energy paths of this realm!`);
-        setTimeout(() => this.showVictory(), 1500);
+        this.renderer.triggerCelebration();
+        setTimeout(() => this.showVictory(), 2500);
       } else {
         this.updateChoiceButtons();
       }
@@ -1116,21 +1117,147 @@ class GameRenderer {
     this.canvas = $('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.particles = [];
-    
-    // Player avatar slide variables
-    this.heroImg = new Image();
-    this.heroImg.src = 'assets/hero_character.png';
+
+    // Preload both hero images
+    this.heroImgMale = new Image();
+    this.heroImgMale.src = 'assets/male_hero.png';
+    this.heroImgFemale = new Image();
+    this.heroImgFemale.src = 'assets/female_hero.png';
+
+    // Active hero image — default, updated by selectCharacter()
+    const saved = localStorage.getItem('gq_selected_character');
+    this.heroImg = (saved === 'female') ? this.heroImgFemale : this.heroImgMale;
+    this.selectedGender = saved || 'male';
+
+    // Player position & animation state
     this.playerNode = null;
     this.playerX = null;
     this.playerY = null;
     this.animProgress = 1.0;
     this.animSource = null;
     this.animTarget = null;
-    
+
+    // Running animation frame counter
+    this.runFrame = 0;
+    this.isRunning = false;
+    this.facingRight = true;   // flip sprite when moving left
+
+    this.isCelebrating = false;
+    this.celebrationStartTime = 0;
+
+    // Character dust trail + arrival burst particles
+    this.charParticles = [];
+    this.arrivalBurst  = false;
+
     this.resize();
     window.addEventListener('resize', () => this.resize());
-    
     this.canvas.addEventListener('pointerdown', e => this.onPointerDown(e));
+  }
+
+  /** Emit dust puffs behind the running character's feet */
+  emitDustTrail() {
+    const isFemale  = this.selectedGender === 'female';
+    const dustColor = isFemale ? [190, 80, 255] : [80, 150, 255];
+    const backX = this.playerX + (this.facingRight ? -1 : 1) * 18;
+    const feetY = this.playerY - 26;
+    for (let i = 0; i < 3; i++) {
+      this.charParticles.push({
+        x:     backX + (Math.random() - 0.5) * 10,
+        y:     feetY + 10 + Math.random() * 6,
+        vx:    (this.facingRight ? -1 : 1) * (Math.random() * 1.5 + 0.4),
+        vy:    -(Math.random() * 1.2 + 0.3),
+        life:  1.0,
+        decay: Math.random() * 0.04 + 0.03,
+        r:     dustColor[0], g: dustColor[1], b: dustColor[2],
+        size:  Math.random() * 4 + 2
+      });
+    }
+  }
+
+  /** Emit a golden star-burst when landing on a node */
+  emitArrivalBurst(x, y) {
+    for (let i = 0; i < 20; i++) {
+      const angle  = (i / 20) * Math.PI * 2;
+      const speed  = Math.random() * 3 + 1;
+      this.charParticles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life:  1.0,
+        decay: Math.random() * 0.03 + 0.025,
+        r: 255, g: Math.random() > 0.5 ? 215 : 150, b: 0,
+        size: Math.random() * 5 + 2
+      });
+    }
+  }
+
+  /** Emit confetti from bottom corners */
+  emitConfettiBlast() {
+    const colors = [
+      [255, 60, 60], [60, 255, 60], [60, 150, 255], 
+      [255, 255, 60], [60, 255, 255], [255, 60, 255], 
+      [255, 140, 0], [255, 255, 255]
+    ];
+    
+    // Blast from bottom-left and bottom-right
+    [0, this.canvas.width].forEach(startX => {
+      const isLeft = startX === 0;
+      for (let i = 0; i < 90; i++) {
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        this.charParticles.push({
+          x: startX, 
+          y: this.canvas.height,
+          vx: (isLeft ? 1 : -1) * (Math.random() * 10 + 4),
+          vy: -(Math.random() * 14 + 8),
+          life: 1.0,
+          decay: Math.random() * 0.008 + 0.004,
+          r: col[0], g: col[1], b: col[2],
+          size: Math.random() * 6 + 4,
+          isConfetti: true,
+          angle: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.3
+        });
+      }
+    });
+  }
+
+  /** Update & draw character trail / burst particles */
+  drawCharParticles() {
+    this.charParticles = this.charParticles.filter(p => p.life > 0);
+    this.charParticles.forEach(p => {
+      p.x    += p.vx;
+      p.y    += p.vy;
+      p.vy   += p.isConfetti ? 0.2 : 0.06;   // gravity
+      p.life -= p.decay;
+      
+      if (p.isConfetti) {
+         p.vx *= 0.98; // air resistance
+         p.angle += p.rotSpeed;
+      }
+      
+      this.ctx.save();
+      this.ctx.globalAlpha = Math.max(0, p.life) * (p.isConfetti ? 1.0 : 0.85);
+      this.ctx.fillStyle   = `rgb(${p.r},${p.g},${p.b})`;
+      this.ctx.shadowColor = `rgba(${p.r},${p.g},${p.b},0.7)`;
+      this.ctx.shadowBlur  = p.isConfetti ? 0 : 6;
+      
+      this.ctx.translate(p.x, p.y);
+      if (p.isConfetti) {
+        this.ctx.rotate(p.angle);
+        this.ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.7);
+      } else {
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+      this.ctx.restore();
+    });
+  }
+
+  /** Called by selectCharacter() to swap the active sprite instantly */
+  switchCharacterImage(gender) {
+    this.selectedGender = gender;
+    this.heroImg = (gender === 'female') ? this.heroImgFemale : this.heroImgMale;
   }
   
   resize() {
@@ -1165,24 +1292,37 @@ class GameRenderer {
     this.playerX = startPos.x;
     this.playerY = startPos.y;
     this.animProgress = 1.0;
+    this.isCelebrating = false;
+  }
+
+  triggerCelebration() {
+    this.isCelebrating = true;
+    this.celebrationStartTime = Date.now();
+    this.emitConfettiBlast();
   }
 
   slidePlayerTo(nodeId) {
     const prevNode = this.playerNode;
     this.playerNode = nodeId;
-    
+
     if (prevNode && this.nodes[prevNode]) {
-      const src = this.getCanvasCoords(this.nodes[prevNode].x, this.nodes[prevNode].y);
-      const dest = this.getCanvasCoords(this.nodes[nodeId].x, this.nodes[nodeId].y);
-      
-      this.animSource = src;
-      this.animTarget = dest;
-      this.animProgress = 0.0; // Trigger easing slide animation
+      const src  = this.getCanvasCoords(this.nodes[prevNode].x, this.nodes[prevNode].y);
+      const dest = this.getCanvasCoords(this.nodes[nodeId].x,   this.nodes[nodeId].y);
+
+      this.animSource   = src;
+      this.animTarget   = dest;
+      this.animProgress = 0.0;
+      this.isRunning    = true;
+      this.runFrame     = 0;
+
+      // Determine which way the character should face
+      this.facingRight  = (dest.x >= src.x);
     } else {
       const dest = this.getCanvasCoords(this.nodes[nodeId].x, this.nodes[nodeId].y);
-      this.playerX = dest.x;
-      this.playerY = dest.y;
+      this.playerX      = dest.x;
+      this.playerY      = dest.y;
       this.animProgress = 1.0;
+      this.isRunning    = false;
     }
   }
 
@@ -1243,63 +1383,354 @@ class GameRenderer {
   drawPlayerAvatar() {
     if (this.playerX === null || this.playerY === null) return;
 
-    this.ctx.save();
-    
-    // Draw animated golden pulsing ring behind player
-    const pulseRadius = 24 + Math.sin(Date.now() / 150) * 3;
-    this.ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
-    this.ctx.shadowBlur = 15;
-    this.ctx.strokeStyle = '#ffd700';
-    this.ctx.lineWidth = 3;
-    this.ctx.beginPath();
-    this.ctx.arc(this.playerX, this.playerY, pulseRadius, 0, Math.PI * 2);
-    this.ctx.stroke();
-    this.ctx.shadowBlur = 0; 
+    const ctx  = this.ctx;
+    const px   = this.playerX;
+    const py   = this.playerY;
 
-    // Draw active glowing Ley-Line shield/token
-    this.ctx.beginPath();
-    this.ctx.arc(this.playerX, this.playerY, 20, 0, Math.PI * 2);
+    // ── Animation state ──────────────────────────────────────────────
+    const running = this.isRunning;
+    const isCeleb = this.isCelebrating;
+    const celebT  = isCeleb ? (Date.now() - this.celebrationStartTime) : 0;
+    const t       = this.runFrame;
+    const isFem   = this.selectedGender === 'female';
+    const dir     = this.facingRight ? 1 : -1; // +1 = facing right
+
+    // Running cycle sine wave
+    const swing    = running ? Math.sin(t * 0.38) : 0;
     
-    // Load character image inside circular token clip, with gorgeous medieval border
-    if (this.heroImg && this.heroImg.complete && this.heroImg.naturalWidth !== 0) {
-      this.ctx.clip();
-      this.ctx.drawImage(this.heroImg, this.playerX - 20, this.playerY - 20, 40, 40);
-    } else {
-      // Fallback stylized graphics: Hooded explorer boy with golden staff badge
-      const grad = this.ctx.createRadialGradient(this.playerX, this.playerY, 2, this.playerX, this.playerY, 20);
-      grad.addColorStop(0, '#ffd700');
-      grad.addColorStop(0.5, '#b8860b');
-      grad.addColorStop(1, '#1a1005');
-      this.ctx.fillStyle = grad;
-      this.ctx.fill();
-      
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.font = '14px serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText('⭐', this.playerX, this.playerY);
+    let scale = 1.0;
+    let jumpY = 0;
+    if (isCeleb) {
+      scale = Math.min(1.8, 1.0 + (celebT / 600) * 0.8);
+      jumpY = Math.abs(Math.sin(celebT * 0.005)) * 50 * scale;
     }
-    
-    this.ctx.restore();
-    
-    // Draw small medieval banner saying "YOU" above the head
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-    this.ctx.strokeStyle = '#ffd700';
-    this.ctx.lineWidth = 1;
-    this.ctx.beginPath();
-    if (this.ctx.roundRect) {
-      this.ctx.roundRect(this.playerX - 22, this.playerY - 42, 44, 16, 4);
+
+    const bodyBob  = running ? Math.abs(Math.sin(t * 0.76)) * 4 : 0;
+    const forwardLean = running && !isCeleb ? dir * 0.16 : 0; // radians
+
+    // ── Dimensions ───────────────────────────────────────────────────
+    const headR   = 9;
+    const torsoH  = 20;
+    const torsoW  = 8;
+    const thighL  = 14;
+    const shinL   = 13;
+    const armUpL  = 11;
+    const armLoL  = 9;
+
+    // ── Colors (gender-aware) ─────────────────────────────────────────
+    const skinLight = isFem ? '#f2c8a0' : '#d4a070';
+    const skinDark  = isFem ? '#c89060' : '#a06030';
+    const armorPri  = isFem ? '#7b2fc0' : '#1a4fc0';
+    const armorHi   = isFem ? '#c060ff' : '#4090ff';
+    const armorDark = isFem ? '#3a0870' : '#0a1f70';
+    const armorTrim = '#ffd700';
+    const legCol    = isFem ? '#5a1a90' : '#1a3090';
+    const legDark   = isFem ? '#2a0850' : '#081850';
+    const bootCol   = isFem ? '#1a0840' : '#060e30';
+    const hairCol   = isFem ? '#8b2200' : '#1a0a00';
+
+    // ── Local coord origin = feet position ───────────────────────────
+    const footY = py - 28 - bodyBob;
+
+    // Pulsing aura ring on node (drawn before character, behind feet)
+    const pulseR = 26 + Math.sin(Date.now() / 180) * 3;
+    ctx.save();
+    ctx.shadowColor = isFem ? 'rgba(180,60,255,0.8)' : 'rgba(60,140,255,0.8)';
+    ctx.shadowBlur  = 18;
+    ctx.strokeStyle = armorTrim;
+    ctx.lineWidth   = 2.5;
+    ctx.beginPath();
+    ctx.arc(px, py, pulseR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Main character transform ──────────────────────────────────────
+    ctx.save();
+    ctx.translate(px, footY - jumpY);
+    ctx.scale(scale, scale);
+    ctx.rotate(forwardLean);   // lean forward when running
+
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle   = '#000';
+    ctx.beginPath();
+    ctx.ellipse(0, bodyBob + jumpY / scale + 4, 16 + Math.abs(swing) * 6, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // ────────────────────────────────────────────────────────────────
+    // Helper: draw a rounded limb segment (from point A to point B)
+    // ────────────────────────────────────────────────────────────────
+    const drawSegment = (x1, y1, x2, y2, w, colLight, colDark) => {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const len   = Math.hypot(x2 - x1, y2 - y1);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      const g = ctx.createLinearGradient(0, -w, 0, w);
+      g.addColorStop(0, colLight);
+      g.addColorStop(0.35, colLight);
+      g.addColorStop(0.7, colDark);
+      g.addColorStop(1, colDark + '88');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(0, -w * 0.5, len, w, w * 0.4);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    // ────────────────────────────────────────────────────────────────
+    // CAPE (drawn first, behind body)
+    // ────────────────────────────────────────────────────────────────
+    const capeLen  = running ? 22 + Math.abs(swing) * 14 : 12;
+    const capeFlap = running ? swing * 8 : 0;
+    ctx.save();
+    const cg = ctx.createLinearGradient(dir * (-3), -torsoH, dir * (-capeLen), 0);
+    cg.addColorStop(0, armorPri + 'ee');
+    cg.addColorStop(0.5, armorDark + 'aa');
+    cg.addColorStop(1, armorDark + '00');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(dir * (-4), -torsoH + 1);
+    ctx.quadraticCurveTo(
+      dir * (-capeLen * 0.5), -torsoH * 0.4 + capeFlap * 0.5,
+      dir * (-capeLen),        capeFlap
+    );
+    ctx.quadraticCurveTo(
+      dir * (-capeLen * 0.4), capeFlap * 0.4,
+      dir * (-2),             -torsoH + 8
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // ────────────────────────────────────────────────────────────────
+    // LEGS
+    // ────────────────────────────────────────────────────────────────
+    // Leg 1 = left (swings forward when swing > 0)
+    // Leg 2 = right (opposite phase)
+    const leg1Thigh = swing * 0.55;        // thigh angle from vertical (rad)
+    const leg2Thigh = -swing * 0.55;
+
+    // Knee bends backward when leg swings backward
+    const leg1Knee  = running ? Math.max(0, -leg1Thigh) * 0.85 : 0;
+    const leg2Knee  = running ? Math.max(0, -leg2Thigh) * 0.85 : 0;
+
+    const drawLeg = (hipOffX, thighAng, kneeBend, isBack) => {
+      // Thigh: from hip downward
+      const kx = hipOffX + Math.sin(thighAng) * thighL;
+      const ky = Math.cos(thighAng) * thighL;
+      // Shin: continues from knee
+      const sa = thighAng + kneeBend;
+      const fx = kx + Math.sin(sa) * shinL;
+      const fy = ky + Math.cos(sa) * shinL;
+
+      const alpha = isBack ? 0.7 : 1;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Thigh segment
+      drawSegment(hipOffX, 0, kx, ky, 4.5, legCol, legDark);
+      // Shin segment
+      drawSegment(kx, ky, fx, fy, 3.5, legDark, bootCol);
+      // Boot
+      ctx.fillStyle = bootCol;
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.ellipse(fx + dir * Math.sin(sa) * 3, fy, 5.5, 3, sa * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    };
+
+    // Draw back leg first, then front
+    if (swing >= 0) {
+      drawLeg(-3, leg2Thigh, leg2Knee, true);   // right = back
+      drawLeg( 3, leg1Thigh, leg1Knee, false);  // left  = front
     } else {
-      this.ctx.rect(this.playerX - 22, this.playerY - 42, 44, 16);
+      drawLeg( 3, leg1Thigh, leg1Knee, true);   // left  = back
+      drawLeg(-3, leg2Thigh, leg2Knee, false);  // right = front
     }
-    this.ctx.fill();
-    this.ctx.stroke();
-    
-    this.ctx.fillStyle = '#ffd700';
-    this.ctx.font = 'bold 10px Cinzel';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('YOU', this.playerX, this.playerY - 33);
+
+    // ────────────────────────────────────────────────────────────────
+    // TORSO  (trapezoid: wider at shoulders, narrower at waist)
+    // ────────────────────────────────────────────────────────────────
+    ctx.save();
+    const tg = ctx.createLinearGradient(-torsoW, -torsoH, torsoW, 0);
+    tg.addColorStop(0, armorHi + '55');
+    tg.addColorStop(0.25, armorPri);
+    tg.addColorStop(0.75, armorPri);
+    tg.addColorStop(1, armorDark);
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.moveTo(-torsoW * 0.85, -torsoH);
+    ctx.lineTo( torsoW * 0.85, -torsoH);
+    ctx.lineTo( torsoW * 0.5,   0);
+    ctx.lineTo(-torsoW * 0.5,   0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Chest plate highlight (oval)
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.beginPath();
+    ctx.ellipse(0, -torsoH * 0.58, torsoW * 0.42, torsoH * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shoulder trim line
+    ctx.strokeStyle = armorTrim;
+    ctx.lineWidth   = 1.2;
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(-torsoW * 0.85, -torsoH);
+    ctx.lineTo( torsoW * 0.85, -torsoH);
+    ctx.stroke();
+
+    // Belt line
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-torsoW * 0.5, 0);
+    ctx.lineTo( torsoW * 0.5, 0);
+    ctx.stroke();
+    ctx.restore();
+
+    // ────────────────────────────────────────────────────────────────
+    // ARMS  (opposing the legs for natural running)
+    // ────────────────────────────────────────────────────────────────
+    const arm1Upper = isCeleb ? (Math.PI * 0.85) : (-swing * 0.45); // left arm swings OPPOSITE left leg
+    const arm2Upper = isCeleb ? (-Math.PI * 0.85) : (swing * 0.45);
+
+    const drawArm = (shoulderX, upperAng, isBack) => {
+      const ex = shoulderX + Math.sin(upperAng) * armUpL;
+      const ey = -torsoH + 3 + Math.cos(upperAng) * armUpL;
+      // Forearm hangs slightly forward
+      const la = upperAng * 0.4;
+      const fx2 = ex + Math.sin(la) * armLoL;
+      const fy2 = ey + Math.cos(la) * armLoL;
+
+      ctx.save();
+      ctx.globalAlpha = isBack ? 0.65 : 1;
+      drawSegment(shoulderX, -torsoH + 3, ex, ey, 3.5, armorPri, armorDark);
+      drawSegment(ex, ey, fx2, fy2, 2.8, skinLight, skinDark);
+      // Hand
+      ctx.fillStyle = skinLight;
+      ctx.beginPath();
+      ctx.arc(fx2, fy2, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    if (swing >= 0) {
+      drawArm(-torsoW * 0.9, arm2Upper, true);   // right = back
+      drawArm( torsoW * 0.9, arm1Upper, false);  // left  = front
+    } else {
+      drawArm( torsoW * 0.9, arm1Upper, true);   // left  = back
+      drawArm(-torsoW * 0.9, arm2Upper, false);  // right = front
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // HEAD  (3D sphere with face)
+    // ────────────────────────────────────────────────────────────────
+    const headCY = -torsoH - headR - 3;
+
+    // Neck
+    drawSegment(-2, -torsoH, 2, headCY + headR, 3, skinLight, skinDark);
+
+    // Sphere gradient (light from upper-left)
+    const hg = ctx.createRadialGradient(
+      -headR * 0.3, headCY - headR * 0.3, headR * 0.1,
+      0, headCY, headR
+    );
+    hg.addColorStop(0, '#ffffff');
+    hg.addColorStop(0.2, skinLight);
+    hg.addColorStop(0.7, skinLight);
+    hg.addColorStop(1, skinDark);
+    ctx.fillStyle = hg;
+    ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(0, headCY, headR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Hair
+    ctx.fillStyle = hairCol;
+    ctx.beginPath();
+    ctx.arc(0, headCY - headR * 0.25, headR, Math.PI, Math.PI * 2);
+    ctx.fill();
+    if (isFem) {
+      // Long flowing side strands
+      ctx.strokeStyle = hairCol;
+      ctx.lineWidth   = 2.5;
+      ctx.lineCap     = 'round';
+      [1, -1].forEach(side => {
+        ctx.beginPath();
+        ctx.moveTo(side * headR * 0.7, headCY + 1);
+        ctx.quadraticCurveTo(
+          side * headR * 1.5,  headCY + headR + swing * dir * 3,
+          side * headR * 1.1,  headCY + headR * 3 + swing * dir * 6
+        );
+        ctx.stroke();
+      });
+    } else {
+      // Short spiky hair tufts
+      ctx.fillStyle = hairCol;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 3.5, headCY - headR * 0.88);
+        ctx.lineTo(i * 3.5 + 1.5, headCY - headR * 1.3 - Math.abs(i) * 1.5);
+        ctx.lineTo(i * 3.5 + 3, headCY - headR * 0.88);
+        ctx.fill();
+      }
+    }
+
+    // Eyes (face direction-aware)
+    const eyeX = dir * headR * 0.28;
+    ctx.fillStyle = '#1a0600';
+    ctx.beginPath();
+    ctx.ellipse(eyeX, headCY - 1, 1.8, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Eye highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(eyeX + 0.5, headCY - 1.8, 0.65, 0, Math.PI * 2);
+    ctx.fill();
+    // Iris color
+    ctx.fillStyle = isFem ? '#9030d0' : '#1a50c0';
+    ctx.beginPath();
+    ctx.ellipse(eyeX, headCY - 1, 1.1, 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore(); // end main character transform
+
+    // ────────────────────────────────────────────────────────────────
+    // NAME BANNER (fixed above character, no lean)
+    // ────────────────────────────────────────────────────────────────
+    const totalH   = headR * 2 + torsoH + thighL + shinL;
+    const bannerY  = footY - bodyBob - totalH - 22;
+    const name     = isFem ? 'ARIA' : 'KAEL';
+    const bW = 56, bH = 18;
+
+    ctx.save();
+    // Pill background
+    ctx.fillStyle   = 'rgba(0,0,0,0.82)';
+    ctx.strokeStyle = armorTrim;
+    ctx.lineWidth   = 1.5;
+    ctx.shadowColor = isFem ? 'rgba(180,60,255,0.6)' : 'rgba(60,140,255,0.6)';
+    ctx.shadowBlur  = 10;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(px - bW / 2, bannerY, bW, bH, 6);
+    else               ctx.rect(px - bW / 2, bannerY, bW, bH);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
+
+    ctx.fillStyle    = armorTrim;
+    ctx.font         = 'bold 11px Cinzel, serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, px, bannerY + bH / 2);
+    ctx.restore();
   }
 
   drawVictoryGraph(canvasId) {
@@ -1595,24 +2026,36 @@ class GameRenderer {
 
     // Update and draw player avatar positions
     if (this.animProgress < 1.0) {
-      this.animProgress += 0.025; // Easing over ~40 frames
+      this.animProgress += 0.022; // ~45 frames travel time
+      this.runFrame++;             // advance running bob frame
+
+      // Emit dust every 3 frames while running
+      if (this.runFrame % 3 === 0) this.emitDustTrail();
+
       if (this.animProgress >= 1.0) {
         this.animProgress = 1.0;
-        this.playerX = this.animTarget.x;
-        this.playerY = this.animTarget.y;
+        this.playerX   = this.animTarget.x;
+        this.playerY   = this.animTarget.y;
+        this.isRunning = false;
+        this.runFrame  = 0;
+        // Arrival star-burst!
+        this.emitArrivalBurst(this.animTarget.x, this.animTarget.y - 26);
       } else {
-        // Easing interpolation
-        const t = this.animProgress;
+        // Smooth ease-in-out interpolation
+        const t    = this.animProgress;
         const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         this.playerX = this.animSource.x + (this.animTarget.x - this.animSource.x) * ease;
         this.playerY = this.animSource.y + (this.animTarget.y - this.animSource.y) * ease;
       }
     } else if (this.playerNode && this.nodes[this.playerNode]) {
       const currentPos = this.getCanvasCoords(this.nodes[this.playerNode].x, this.nodes[this.playerNode].y);
-      this.playerX = currentPos.x;
-      this.playerY = currentPos.y;
+      this.playerX   = currentPos.x;
+      this.playerY   = currentPos.y;
+      this.isRunning = false;
     }
 
+    // Draw trail + burst particles BEFORE avatar (so they appear behind/around feet)
+    this.drawCharParticles();
     this.drawPlayerAvatar();
     this.drawLegend();
   }
@@ -1664,7 +2107,81 @@ class GameRenderer {
   }
 }
 
+// ============================================================================
+// CHARACTER SELECTION (Global – called from inline onclick in HTML)
+// ============================================================================
+window.selectCharacter = function(gender) {
+  const maleCard   = document.getElementById('char-male');
+  const femaleCard = document.getElementById('char-female');
+  if (!maleCard || !femaleCard) return;
+
+  // Toggle selected class
+  maleCard.classList.remove('selected');
+  femaleCard.classList.remove('selected');
+  const chosen = gender === 'male' ? maleCard : femaleCard;
+  chosen.classList.add('selected');
+
+  // Persist selection
+  localStorage.setItem('gq_selected_character', gender);
+
+  // Swap the live canvas sprite so it takes effect immediately
+  if (window.game && window.game.renderer) {
+    window.game.renderer.switchCharacterImage(gender);
+  }
+
+  // Update sidebar hero art
+  const heroImg = document.querySelector('.hero-character-img');
+  if (heroImg) {
+    heroImg.src = gender === 'male' ? 'assets/male_hero.png' : 'assets/female_hero.png';
+    heroImg.alt = gender === 'male' ? 'Kael – The Pathfinder' : 'Aria – The Sorceress';
+  }
+
+  // Gold flash ripple on the card
+  chosen.style.transition = 'box-shadow 0.15s';
+  chosen.style.boxShadow  = '0 0 40px rgba(255,215,0,0.9)';
+  setTimeout(() => {
+    chosen.style.boxShadow  = '';
+    chosen.style.transition = '';
+  }, 420);
+
+  // Enable the Begin Quest button
+  const btn  = document.getElementById('btn-begin-quest');
+  const hint = document.getElementById('begin-quest-hint');
+  if (btn) {
+    btn.classList.add('ready');
+  }
+  if (hint) {
+    const heroName = gender === 'female' ? 'Aria' : 'Kael';
+    hint.textContent = `✦ ${heroName} is ready for the journey! ✦`;
+    hint.classList.remove('hidden');
+  }
+};
+
+/** Called by the Begin Quest button – starts Story Mode with chosen hero */
+window.beginQuest = function() {
+  const btn = document.getElementById('btn-begin-quest');
+  if (!btn || !btn.classList.contains('ready')) return;
+
+  // Close the start menu overlay
+  const menu = document.getElementById('start-menu');
+  if (menu) menu.classList.add('hidden');
+
+  // Kick off Story Mode via the game controller
+  if (window.game) {
+    window.game.startStoryMode();
+  }
+};
+
+// Restore previously saved character on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('gq_selected_character');
+  if (saved) {
+    window.selectCharacter(saved);
+  }
+});
+
 // Bootstrap
 window.addEventListener('load', () => {
   window.game = new GameController();
 });
+

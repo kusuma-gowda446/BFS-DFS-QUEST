@@ -201,27 +201,49 @@
           <div class="menu-subtitle-logo font-medieval">The Traversal Realms</div>
         </div>
         
-        <p style="font-size: 0.88rem; line-height: 1.6; margin-bottom: 20px; color: #5c3c1e;">
-          Welcome, brave Pathfinder! The magical kingdoms are fracturing. Restore the ancient energy Ley Lines using your knowledge of Graph Traversal algorithms!
-        </p>
+        <!-- Character Selection -->
+        <div class="char-select-label font-medieval">Choose Your Hero</div>
+        <div class="char-select-row">
 
-        <!-- Cartographer Character Profile Card -->
-        <div class="profile-card-fantasy">
-          <div class="profile-img-circle">
-            <img src="assets/hero_character.png" alt="Pathfinder Explorer">
-          </div>
-          <div class="profile-info">
-            <div class="profile-rank font-medieval">Novice Cartographer</div>
-            <div class="profile-level font-fantasy">Pathfinder Level 1</div>
-            <div class="profile-xp-bar">
-              <div class="profile-xp-fill"></div>
+          <!-- Male Hero Card -->
+          <div class="char-card" id="char-male" onclick="selectCharacter('male')" title="Kael – The Pathfinder">
+            <div class="char-card-glow male-glow"></div>
+            <div class="char-img-wrap">
+              <img src="assets/male_hero.png" alt="Male Hero Kael" class="char-img">
             </div>
+            <div class="char-name font-fantasy">Kael</div>
+            <div class="char-role font-medieval">⚔️ The Pathfinder</div>
+            <div class="char-select-badge" id="badge-male">✓ Selected</div>
+          </div>
+
+          <!-- Female Hero Card -->
+          <div class="char-card" id="char-female" onclick="selectCharacter('female')" title="Aria – The Sorceress">
+            <div class="char-card-glow female-glow"></div>
+            <div class="char-img-wrap">
+              <img src="assets/female_hero.png" alt="Female Hero Aria" class="char-img">
+            </div>
+            <div class="char-name font-fantasy">Aria</div>
+            <div class="char-role font-medieval">✨ The Sorceress</div>
+            <div class="char-select-badge" id="badge-female">✓ Selected</div>
+          </div>
+
+        </div>
+
+        <!-- Begin Quest CTA -->
+        <div class="begin-quest-wrap">
+          <button id="btn-begin-quest" class="btn-begin-quest font-fantasy" onclick="beginQuest()">
+            <i class="fa-solid fa-play"></i> Begin Quest
+          </button>
+          <div class="begin-quest-hint font-medieval" id="begin-quest-hint">
+            ✦ Select your hero above ✦
           </div>
         </div>
       </div>
 
       <!-- Right Column (Magical Actions or Forms Container) -->
       <div class="start-right-menu">
+        <!-- Right-column directive -->
+        <div class="right-menu-directive font-medieval">— Or choose a mode below —</div>
         <!-- Main menu actions -->
         <div id="menu-main-view" style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
           <div id="btn-mode-adventure" class="action-card-v4 adventure-primary-btn">
