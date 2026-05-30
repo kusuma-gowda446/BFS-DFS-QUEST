@@ -211,7 +211,7 @@
             <div class="char-img-wrap">
               <img src="assets/male_hero.png" alt="Male Hero Kael" class="char-img">
             </div>
-            <div class="char-name font-fantasy">Kael</div>
+            <input type="text" class="char-name font-fantasy" id="input-name-male" value="Kael" onclick="event.stopPropagation()" oninput="window.updateHeroName('male', this.value)" maxlength="12">
             <div class="char-role font-medieval">⚔️ The Pathfinder</div>
             <div class="char-select-badge" id="badge-male">✓ Selected</div>
           </div>
@@ -222,7 +222,7 @@
             <div class="char-img-wrap">
               <img src="assets/female_hero.png" alt="Female Hero Aria" class="char-img">
             </div>
-            <div class="char-name font-fantasy">Aria</div>
+            <input type="text" class="char-name font-fantasy" id="input-name-female" value="Aria" onclick="event.stopPropagation()" oninput="window.updateHeroName('female', this.value)" maxlength="12">
             <div class="char-role font-medieval">✨ The Sorceress</div>
             <div class="char-select-badge" id="badge-female">✓ Selected</div>
           </div>

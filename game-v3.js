@@ -1136,6 +1136,7 @@ class GameRenderer {
     this.animProgress = 1.0;
     this.animSource = null;
     this.animTarget = null;
+    this.lastActionTime = Date.now(); // Idle hint tracking
 
     // Running animation frame counter
     this.runFrame = 0;
@@ -1293,6 +1294,7 @@ class GameRenderer {
     this.playerY = startPos.y;
     this.animProgress = 1.0;
     this.isCelebrating = false;
+    this.lastActionTime = Date.now();
   }
 
   triggerCelebration() {
@@ -1339,6 +1341,7 @@ class GameRenderer {
   }
   
   onPointerDown(e) {
+    this.lastActionTime = Date.now();
     if(!this.level) return;
     const rect = this.canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
@@ -1420,13 +1423,13 @@ class GameRenderer {
     // ── Colors (gender-aware) ─────────────────────────────────────────
     const skinLight = isFem ? '#f2c8a0' : '#d4a070';
     const skinDark  = isFem ? '#c89060' : '#a06030';
-    const armorPri  = isFem ? '#7b2fc0' : '#1a4fc0';
-    const armorHi   = isFem ? '#c060ff' : '#4090ff';
-    const armorDark = isFem ? '#3a0870' : '#0a1f70';
-    const armorTrim = '#ffd700';
-    const legCol    = isFem ? '#5a1a90' : '#1a3090';
-    const legDark   = isFem ? '#2a0850' : '#081850';
-    const bootCol   = isFem ? '#1a0840' : '#060e30';
+    const armorPri  = isFem ? '#5a1f80' : '#102550'; // Deep purple vs Dark blue
+    const armorHi   = isFem ? '#8a3fcf' : '#204590';
+    const armorDark = isFem ? '#2a0840' : '#050a20';
+    const armorTrim = isFem ? '#e8e8e8' : '#ffd700'; // Silver vs Gold
+    const legCol    = isFem ? '#3a1050' : '#0a1530';
+    const legDark   = isFem ? '#1a0520' : '#040815';
+    const bootCol   = isFem ? '#1a0520' : '#040815';
     const hairCol   = isFem ? '#8b2200' : '#1a0a00';
 
     // ── Local coord origin = feet position ───────────────────────────
@@ -1708,8 +1711,16 @@ class GameRenderer {
     // ────────────────────────────────────────────────────────────────
     const totalH   = headR * 2 + torsoH + thighL + shinL;
     const bannerY  = footY - bodyBob - totalH - 22;
-    const name     = isFem ? 'ARIA' : 'KAEL';
-    const bW = 56, bH = 18;
+    
+    const defaultName = isFem ? 'ARIA' : 'KAEL';
+    let name = window.heroNames ? window.heroNames[this.selectedGender] : defaultName;
+    if (!name || name.trim() === '') name = defaultName;
+    name = name.toUpperCase();
+
+    ctx.font         = 'bold 11px Cinzel, serif';
+    const textW = ctx.measureText(name).width;
+    const bW = Math.max(56, textW + 16);
+    const bH = 18;
 
     ctx.save();
     // Pill background
@@ -2026,7 +2037,7 @@ class GameRenderer {
 
     // Update and draw player avatar positions
     if (this.animProgress < 1.0) {
-      this.animProgress += 0.022; // ~45 frames travel time
+      this.animProgress += 0.010; // Even slower, more relaxed travel time
       this.runFrame++;             // advance running bob frame
 
       // Emit dust every 3 frames while running
@@ -2057,7 +2068,130 @@ class GameRenderer {
     // Draw trail + burst particles BEFORE avatar (so they appear behind/around feet)
     this.drawCharParticles();
     this.drawPlayerAvatar();
+    this.drawCatHint();
     this.drawLegend();
+  }
+
+  // Draws a cute procedural gold/white cat that offers a hint if idle
+  drawCatHint() {
+    if (!this.ctrl || this.isCelebrating || this.ctrl.visited.length >= Object.keys(this.nodes).length) return;
+    
+    // Check if idle for 10 seconds
+    if (Date.now() - this.lastActionTime < 10000) return;
+
+    // Determine the next valid node
+    const expectedNode = this.ctrl.expectedOrder[this.ctrl.visited.length];
+    if (!expectedNode) return;
+
+    const ctx = this.ctx;
+    ctx.save();
+    
+    // Position cat slightly offset from player (behind them)
+    const cx = this.playerX + (this.facingRight ? -45 : 45);
+    const cy = this.playerY - 10;
+
+    // Small bobbing and wagging animation
+    const bob = Math.sin(Date.now() / 200) * 3;
+    const wag = Math.sin(Date.now() / 150) * 0.4;
+    
+    ctx.translate(cx, cy + bob);
+    ctx.scale(1.25, 1.25); // Make the cat a bit larger
+    
+    // Draw tail (wags)
+    ctx.save();
+    ctx.translate(-8, 5);
+    ctx.rotate(wag);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-15, -10, -5, -20);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    // Draw body
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 12, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    // Draw orange spot on body
+    ctx.beginPath();
+    ctx.ellipse(4, 3, 5, 6, 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff8c00';
+    ctx.fill();
+
+    // Draw head
+    ctx.beginPath();
+    ctx.arc(0, -5, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    // Draw ears (left white, right orange)
+    ctx.beginPath();
+    ctx.moveTo(-8, -10);
+    ctx.lineTo(-12, -20);
+    ctx.lineTo(-2, -14);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(8, -10);
+    ctx.lineTo(12, -20);
+    ctx.lineTo(2, -14);
+    ctx.fillStyle = '#ff8c00';
+    ctx.fill();
+
+    // Eyes
+    ctx.beginPath();
+    ctx.arc(-3, -6, 1.5, 0, Math.PI*2);
+    ctx.arc(3, -6, 1.5, 0, Math.PI*2);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+    
+    // Nose
+    ctx.beginPath();
+    ctx.arc(0, -3, 1, 0, Math.PI*2);
+    ctx.fillStyle = '#ff9999';
+    ctx.fill();
+
+    // Speech Bubble "Need a hint?"
+    const text = `Meow! Try node ${expectedNode}`;
+    ctx.font = 'bold 12px Cinzel';
+    const tW = ctx.measureText(text).width + 16;
+    
+    ctx.translate(0, -35); // Move up for speech bubble
+    
+    // Bubble tail
+    ctx.beginPath();
+    ctx.moveTo(0, 5);
+    ctx.lineTo(-5, -5);
+    ctx.lineTo(5, -5);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.fill();
+
+    // Bubble body
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(-tW/2, -25, tW, 20, 6);
+    } else {
+      ctx.rect(-tW/2, -25, tW, 20);
+    }
+    ctx.fill();
+    
+    // Orange trim around bubble
+    ctx.strokeStyle = '#ff8c00';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = '#1a0600';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 0, -14);
+    
+    ctx.restore();
   }
 
   // Draw a horizontal, clean, highly-legible canvas legend matching the reference image
@@ -2110,6 +2244,15 @@ class GameRenderer {
 // ============================================================================
 // CHARACTER SELECTION (Global – called from inline onclick in HTML)
 // ============================================================================
+window.heroNames = {
+  male: 'Kael',
+  female: 'Aria'
+};
+
+window.updateHeroName = function(gender, newName) {
+  window.heroNames[gender] = newName;
+};
+
 window.selectCharacter = function(gender) {
   const maleCard   = document.getElementById('char-male');
   const femaleCard = document.getElementById('char-female');

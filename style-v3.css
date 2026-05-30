@@ -1220,6 +1220,19 @@ body {
   position: relative;
   z-index: 5;
   text-shadow: 0 0 12px rgba(255,215,0,0.5), 0 2px 4px rgba(0,0,0,0.8);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  width: 90%;
+  padding: 2px 0;
+  outline: none;
+  transition: border-color 0.3s;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.char-name:hover, .char-name:focus {
+  border-bottom: 1px dashed rgba(255,215,0,0.5);
 }
 
 /* ── Class Ribbon beneath name ── */
