@@ -2097,67 +2097,126 @@ class GameRenderer {
     ctx.translate(cx, cy + bob);
     ctx.scale(1.25, 1.25); // Make the cat a bit larger
     
-    // Draw tail (wags)
+    // 1. Shadow underneath
+    ctx.beginPath();
+    ctx.ellipse(0, 15, 12, 4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.filter = 'blur(2px)';
+    ctx.fill();
+    ctx.filter = 'none';
+
+    // 2. Tail (wags)
     ctx.save();
-    ctx.translate(-8, 5);
+    ctx.translate(-8, 8);
     ctx.rotate(wag);
+    const tailGrad = ctx.createLinearGradient(-15, -20, 0, 0);
+    tailGrad.addColorStop(0, '#ff9d00'); // Orange tip
+    tailGrad.addColorStop(1, '#ffffff'); // White base
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.quadraticCurveTo(-15, -10, -5, -20);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = tailGrad;
+    ctx.lineWidth = 4.5;
     ctx.lineCap = 'round';
     ctx.stroke();
     ctx.restore();
 
-    // Draw body
+    // 3. Body (gradient)
+    const bodyGrad = ctx.createRadialGradient(-3, 2, 2, 0, 5, 12);
+    bodyGrad.addColorStop(0, '#ffffff');
+    bodyGrad.addColorStop(1, '#e0e0e0');
     ctx.beginPath();
-    ctx.ellipse(0, 5, 12, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 7, 11, 9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // 4. Back Leg / Haunch
+    ctx.beginPath();
+    ctx.ellipse(-5, 10, 5, 6, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#d0d0d0';
+    ctx.fill();
+
+    // 5. Orange Patch on Body
+    const patchGrad = ctx.createLinearGradient(0, 0, 8, 12);
+    patchGrad.addColorStop(0, '#ffaa00');
+    patchGrad.addColorStop(1, '#cc5500');
+    ctx.beginPath();
+    ctx.ellipse(4, 5, 6, 7, 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = patchGrad;
+    ctx.fill();
+
+    // 6. Front Paws
+    ctx.beginPath();
+    ctx.ellipse(3, 15, 3, 2.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(8, 14, 3, 2.5, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // Draw orange spot on body
-    ctx.beginPath();
-    ctx.ellipse(4, 3, 5, 6, 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = '#ff8c00';
-    ctx.fill();
-
-    // Draw head
+    // 7. Head (gradient)
+    const headGrad = ctx.createRadialGradient(-2, -7, 2, 0, -5, 10);
+    headGrad.addColorStop(0, '#ffffff');
+    headGrad.addColorStop(1, '#d9d9d9');
     ctx.beginPath();
     ctx.arc(0, -5, 10, 0, Math.PI * 2);
+    ctx.fillStyle = headGrad;
+    ctx.fill();
+
+    // 8. Ears
+    // Left ear (White outer, pink inner)
+    ctx.beginPath();
+    ctx.moveTo(-9, -10); ctx.lineTo(-13, -22); ctx.lineTo(-2, -14);
+    ctx.fillStyle = '#e6e6e6'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-8, -12); ctx.lineTo(-11, -19); ctx.lineTo(-4, -14);
+    ctx.fillStyle = '#ff9999'; ctx.fill();
+
+    // Right ear (Orange outer, pink inner)
+    ctx.beginPath();
+    ctx.moveTo(9, -10); ctx.lineTo(13, -22); ctx.lineTo(2, -14);
+    ctx.fillStyle = '#ff9d00'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(8, -12); ctx.lineTo(11, -19); ctx.lineTo(4, -14);
+    ctx.fillStyle = '#ff9999'; ctx.fill();
+
+    // 9. Muzzle
+    ctx.beginPath();
+    ctx.ellipse(0, -1, 4, 2.5, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // Draw ears (left white, right orange)
+    // 10. Nose
     ctx.beginPath();
-    ctx.moveTo(-8, -10);
-    ctx.lineTo(-12, -20);
-    ctx.lineTo(-2, -14);
-    ctx.fillStyle = '#ffffff';
+    ctx.moveTo(-1.5, -2); ctx.lineTo(1.5, -2); ctx.lineTo(0, 0);
+    ctx.fillStyle = '#ff7777';
     ctx.fill();
 
+    // 11. Eyes (with catchlights)
     ctx.beginPath();
-    ctx.moveTo(8, -10);
-    ctx.lineTo(12, -20);
-    ctx.lineTo(2, -14);
-    ctx.fillStyle = '#ff8c00';
-    ctx.fill();
+    ctx.ellipse(-4, -5.5, 1.8, 2.2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-4.5, -6.5, 0.6, 0, Math.PI*2);
+    ctx.fillStyle = '#fff'; ctx.fill();
 
-    // Eyes
     ctx.beginPath();
-    ctx.arc(-3, -6, 1.5, 0, Math.PI*2);
-    ctx.arc(3, -6, 1.5, 0, Math.PI*2);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
-    
-    // Nose
+    ctx.ellipse(4, -5.5, 1.8, 2.2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; ctx.fill();
     ctx.beginPath();
-    ctx.arc(0, -3, 1, 0, Math.PI*2);
-    ctx.fillStyle = '#ff9999';
-    ctx.fill();
+    ctx.arc(3.5, -6.5, 0.6, 0, Math.PI*2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+
+    // 12. Whiskers
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-3, -1); ctx.lineTo(-12, -2);
+    ctx.moveTo(-3, 0);  ctx.lineTo(-13, 1);
+    ctx.moveTo(3, -1); ctx.lineTo(12, -2);
+    ctx.moveTo(3, 0);  ctx.lineTo(13, 1);
+    ctx.stroke();
 
     // Speech Bubble "Need a hint?"
-    const text = `Meow! Try node ${expectedNode}`;
+    const text = `Sudo here! Try node ${expectedNode}`;
     ctx.font = 'bold 12px Cinzel';
     const tW = ctx.measureText(text).width + 16;
     
