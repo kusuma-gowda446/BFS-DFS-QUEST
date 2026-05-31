@@ -1399,7 +1399,7 @@ class GameRenderer {
     const dir     = this.facingRight ? 1 : -1; // +1 = facing right
 
     // Running cycle sine wave
-    const swing    = running ? Math.sin(t * 0.38) : 0;
+    const swing    = running ? Math.sin(t * 0.08) : 0;
     
     let scale = 1.0;
     let jumpY = 0;
@@ -1408,7 +1408,7 @@ class GameRenderer {
       jumpY = Math.abs(Math.sin(celebT * 0.005)) * 50 * scale;
     }
 
-    const bodyBob  = running ? Math.abs(Math.sin(t * 0.76)) * 4 : 0;
+    const bodyBob  = running ? Math.abs(Math.sin(t * 0.16)) * 4 : 0;
     const forwardLean = running && !isCeleb ? dir * 0.16 : 0; // radians
 
     // ── Dimensions ───────────────────────────────────────────────────
@@ -2037,11 +2037,11 @@ class GameRenderer {
 
     // Update and draw player avatar positions
     if (this.animProgress < 1.0) {
-      this.animProgress += 0.010; // Even slower, more relaxed travel time
+      this.animProgress += 0.003; // Even slower, more relaxed travel time
       this.runFrame++;             // advance running bob frame
 
-      // Emit dust every 3 frames while running
-      if (this.runFrame % 3 === 0) this.emitDustTrail();
+      // Emit dust every 10 frames while running
+      if (this.runFrame % 10 === 0) this.emitDustTrail();
 
       if (this.animProgress >= 1.0) {
         this.animProgress = 1.0;
